@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: librarypulse-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: librarypulse
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: librarypulse-backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - SECRET_KEY=4c97f952fd74b54557e6cb9341cd7378d33b2e19bcab11eb6f5cd2ca0ab21929
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:80,http://frontend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - data_volume:/app/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: librarypulse-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  data_volume: 
