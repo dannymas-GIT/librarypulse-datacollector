@@ -50,21 +50,21 @@ export const libraryService = {
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.offset) params.append('offset', filters.offset.toString());
     
-    return get<LibrarySearchResult>(`/api/libraries/search?${params.toString()}`);
+    return get<LibrarySearchResult>(`api/libraries/search?${params.toString()}`);
   },
   
   /**
    * Get libraries grouped by region
    */
   getLibrariesByRegion: async (): Promise<Record<string, LibraryProfile[]>> => {
-    return get<Record<string, LibraryProfile[]>>('/api/libraries/regions');
+    return get<Record<string, LibraryProfile[]>>('api/libraries/regions');
   },
   
   /**
    * Get a specific library by ID
    */
   getLibrary: async (libraryId: string): Promise<LibraryProfile> => {
-    return get<LibraryProfile>(`/api/libraries/${libraryId}`);
+    return get<LibraryProfile>(`api/libraries/${libraryId}`);
   },
   
   /**
@@ -75,7 +75,7 @@ export const libraryService = {
     params.append('limit', limit.toString());
     params.append('offset', offset.toString());
     
-    return get<LibraryProfile[]>(`/api/libraries?${params.toString()}`);
+    return get<LibraryProfile[]>(`api/libraries?${params.toString()}`);
   }
 };
 

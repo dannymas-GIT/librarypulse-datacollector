@@ -86,7 +86,7 @@ const statsService = {
       params.append('state', state);
     }
     
-    return get<SummaryStats>(`/api/v1/stats/summary?${params.toString()}`);
+    return get<SummaryStats>(`api/v1/stats/summary?${params.toString()}`);
   },
   
   /**
@@ -106,7 +106,7 @@ const statsService = {
       params.append('state', state);
     }
     
-    return get<TrendStats>(`/api/v1/stats/trends?${params.toString()}`);
+    return get<TrendStats>(`api/v1/stats/trends?${params.toString()}`);
   },
   
   /**
@@ -122,14 +122,14 @@ const statsService = {
     params.append('year', year.toString());
     metrics.forEach(metric => params.append('metrics', metric));
     
-    return get<ComparisonStats>(`/api/v1/stats/comparison?${params.toString()}`);
+    return get<ComparisonStats>(`api/v1/stats/comparison?${params.toString()}`);
   },
   
   /**
    * Get available statistic categories and metrics
    */
   getStatisticCategories: async (): Promise<StatisticCategory[]> => {
-    return get<StatisticCategory[]>('/api/v1/stats/categories');
+    return get<StatisticCategory[]>('api/v1/stats/categories');
   },
   
   /**
@@ -139,7 +139,7 @@ const statsService = {
     libraryId: string = 'NY0773',
     year: number = 2006
   ): Promise<DashboardSummary> => {
-    return get<DashboardSummary>(`/api/dashboard/summary?library_id=${libraryId}&year=${year}`);
+    return get<DashboardSummary>(`api/dashboard/summary?library_id=${libraryId}&year=${year}`);
   },
   
   /**
@@ -155,7 +155,7 @@ const statsService = {
     params.append('year', year.toString());
     metrics.forEach(metric => params.append('metrics', metric));
     
-    return get<KPI[]>(`/api/dashboard/kpis?${params.toString()}`);
+    return get<KPI[]>(`api/dashboard/kpis?${params.toString()}`);
   }
 };
 
