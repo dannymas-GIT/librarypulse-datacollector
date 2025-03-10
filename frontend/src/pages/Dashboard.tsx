@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  BarChart3, 
-  Users, 
+  BarChart, 
+  User, 
   BookOpen, 
   Calendar, 
-  TrendingUp, 
-  TrendingDown, 
+  LineChart, 
+  ArrowDown, 
   Minus,
   Library,
   Clock
@@ -15,34 +15,8 @@ import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import { statsService } from '@/services/statsService';
-import { libraryService } from '@/services/libraryService';
-
-// Define types
-interface KPI {
-  name: string;
-  value: number;
-  previous_value?: number;
-  change_percent?: number;
-  trend?: string;
-  unit?: string;
-}
-
-interface DashboardSummary {
-  library_id: string;
-  library_name: string;
-  year: number;
-  kpis: KPI[];
-}
-
-interface Library {
-  id: string;
-  name: string;
-  location?: {
-    city?: string;
-    state?: string;
-  };
-}
+import statsService, { KPI, DashboardSummary } from '@/services/statsService';
+import { libraryService, LibraryProfile } from '@/services/libraryService';
 
 // Helper function to format numbers
 const formatNumber = (num: number): string => {
@@ -56,20 +30,20 @@ const formatNumber = (num: number): string => {
 };
 
 // Component for displaying a stat card
-const StatCard: React.FC<{ kpi: any }> = ({ kpi }) => {
+const StatCard: React.FC<{ kpi: KPI }> = ({ kpi }) => {
   // Determine icon based on metric name
   const getIcon = () => {
     switch (kpi.name) {
       case 'Total Circulation':
         return <BookOpen className="h-8 w-8 text-blue-500" />;
       case 'Visits':
-        return <Users className="h-8 w-8 text-green-500" />;
+        return <User className="h-8 w-8 text-green-500" />;
       case 'Total Programs':
         return <Calendar className="h-8 w-8 text-purple-500" />;
       case 'Program Attendance':
-        return <Users className="h-8 w-8 text-orange-500" />;
+        return <User className="h-8 w-8 text-orange-500" />;
       case 'Reference Transactions':
-        return <BarChart3 className="h-8 w-8 text-indigo-500" />;
+        return <BarChart className="h-8 w-8 text-indigo-500" />;
       default:
         return <Library className="h-8 w-8 text-gray-500" />;
     }
@@ -80,9 +54,9 @@ const StatCard: React.FC<{ kpi: any }> = ({ kpi }) => {
     if (!kpi.trend || !kpi.change_percent) return null;
     
     if (kpi.trend === 'up') {
-      return <TrendingUp className="h-4 w-4 text-green-500" />;
+      return <LineChart className="h-4 w-4 text-green-500" />;
     } else if (kpi.trend === 'down') {
-      return <TrendingDown className="h-4 w-4 text-red-500" />;
+      return <ArrowDown className="h-4 w-4 text-red-500" />;
     } else {
       return <Minus className="h-4 w-4 text-gray-500" />;
     }
@@ -174,8 +148,8 @@ const Dashboard: React.FC = () => {
             <Select
               label="Library"
               value={selectedLibrary}
-              onChange={(e) => setSelectedLibrary(e.target.value)}
-              options={libraries?.map(lib => ({
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedLibrary(e.target.value)}
+              options={libraries?.map((lib: LibraryProfile) => ({
                 value: lib.id,
                 label: lib.name
               })) || []}
@@ -187,7 +161,7 @@ const Dashboard: React.FC = () => {
             <Select
               label="Year"
               value={selectedYear.toString()}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedYear(parseInt(e.target.value))}
               options={years.map(year => ({
                 value: year.toString(),
                 label: year.toString()
@@ -213,7 +187,7 @@ const Dashboard: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {dashboardData.kpis.map((kpi, index) => (
+            {dashboardData.kpis.map((kpi: KPI, index: number) => (
               <StatCard key={index} kpi={kpi} />
             ))}
           </div>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Users, BookOpen, DollarSign } from 'lucide-react';
+import { BarChart, User, Book, DollarSign } from 'lucide-react';
 
-import { fetchSummaryStats } from '@/services/statsService';
+import statsService, { SummaryStats } from '@/services/statsService';
 
 const Statistics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(2022);
@@ -10,7 +10,7 @@ const Statistics = () => {
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['summaryStats', selectedYear, selectedState],
-    queryFn: () => fetchSummaryStats(selectedYear, selectedState || undefined),
+    queryFn: () => statsService.getSummaryStats(selectedYear, selectedState || undefined),
   });
 
   // Placeholder for state list
@@ -82,7 +82,7 @@ const Statistics = () => {
               <div className="bg-primary-50 rounded-lg p-4">
                 <div className="flex items-center">
                   <div className="p-3 bg-primary-100 rounded-full mr-4">
-                    <Users className="h-6 w-6 text-primary-700" />
+                    <User className="h-6 w-6 text-primary-700" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Libraries</p>
@@ -93,7 +93,7 @@ const Statistics = () => {
               <div className="bg-primary-50 rounded-lg p-4">
                 <div className="flex items-center">
                   <div className="p-3 bg-primary-100 rounded-full mr-4">
-                    <Users className="h-6 w-6 text-primary-700" />
+                    <User className="h-6 w-6 text-primary-700" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Total Visits</p>
@@ -104,7 +104,7 @@ const Statistics = () => {
               <div className="bg-primary-50 rounded-lg p-4">
                 <div className="flex items-center">
                   <div className="p-3 bg-primary-100 rounded-full mr-4">
-                    <BookOpen className="h-6 w-6 text-primary-700" />
+                    <Book className="h-6 w-6 text-primary-700" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Total Circulation</p>

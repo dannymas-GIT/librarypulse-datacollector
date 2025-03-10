@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Search, Library as LibraryIcon, MapPin, Users, BookOpen, Calendar, Filter } from 'lucide-react';
+import { Search, Library, MapPin, Users, BookOpen, Calendar, Filter } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import { libraryService, LibraryProfile, LibrarySearchResult } from '@/services/libraryService';
+import { libraryService } from '@/services/libraryService';
+import type { LibraryProfile, LibrarySearchResult } from '@/services/libraryService';
 
 // Define types
 interface LibraryLocation {
@@ -64,7 +65,7 @@ const Libraries: React.FC = () => {
     : [];
   
   // Handle search
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // The search is handled by the useQuery hook
   };
@@ -103,7 +104,7 @@ const Libraries: React.FC = () => {
               type="text"
               placeholder="Search libraries by name or location..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               icon={<Search className="h-5 w-5 text-gray-400" />}
             />
           </div>
@@ -112,7 +113,7 @@ const Libraries: React.FC = () => {
             <Select
               label="Filter by Region"
               value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedRegion(e.target.value)}
               options={[
                 { value: '', label: 'All Regions' },
                 ...regions.map(region => ({ value: region || '', label: region || 'Unknown' }))
@@ -134,11 +135,11 @@ const Libraries: React.FC = () => {
       
       {/* Library cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data?.libraries.map((library) => (
+        {data?.libraries.map((library: LibraryProfile) => (
           <Card key={library.id} className="p-0">
             <div className="p-4 border-b">
               <h2 className="text-xl font-semibold flex items-center">
-                <LibraryIcon className="h-5 w-5 text-blue-500 mr-2" />
+                <Library className="h-5 w-5 text-blue-500 mr-2" />
                 {library.name}
               </h2>
               {library.location && (
@@ -197,7 +198,7 @@ const Libraries: React.FC = () => {
       {/* No results */}
       {data?.libraries.length === 0 && (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <LibraryIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <Library className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No libraries found</h3>
           <p className="text-gray-600">
             Try adjusting your search or filters to find what you're looking for.

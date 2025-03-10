@@ -75,7 +75,7 @@ export interface DashboardSummary {
 }
 
 // Stats service functions
-export const statsService = {
+const statsService = {
   /**
    * Get summary statistics for a specific year
    */
@@ -157,6 +157,28 @@ export const statsService = {
     
     return get<KPI[]>(`/api/dashboard/kpis?${params.toString()}`);
   }
+};
+
+// For backward compatibility
+export const fetchSummaryStats = (year?: number, state?: string): Promise<SummaryStats> => {
+  return statsService.getSummaryStats(year || 2022, state);
+};
+
+export const fetchTrendStats = (
+  metrics: string[],
+  startYear?: number,
+  endYear?: number,
+  state?: string
+): Promise<TrendStats> => {
+  return statsService.getTrendStats(metrics, startYear || 2017, endYear || 2022, state);
+};
+
+export const fetchComparisonStats = (
+  libraryIds: string[],
+  year?: number,
+  metrics?: string[]
+): Promise<ComparisonStats> => {
+  return statsService.getComparisonStats(libraryIds, year || 2022, metrics || ['total_circulation', 'visits']);
 };
 
 // Export default
