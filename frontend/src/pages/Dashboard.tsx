@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  BarChart, 
-  User, 
+  BarChart3, 
+  Users, 
   BookOpen, 
   Calendar, 
-  LineChart, 
+  ArrowUpDown, 
   ArrowDown, 
   Minus,
   Library,
@@ -15,8 +15,10 @@ import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import statsService, { KPI, DashboardSummary } from '@/services/statsService';
-import { libraryService, LibraryProfile } from '@/services/libraryService';
+import statsService from '@/services/statsService';
+import { libraryService } from '@/services/libraryService';
+import type { LibraryProfile } from '@/services/libraryService';
+import type { KPI, DashboardSummary } from '@/services/statsService';
 
 // Helper function to format numbers
 const formatNumber = (num: number): string => {
@@ -35,17 +37,17 @@ const StatCard: React.FC<{ kpi: KPI }> = ({ kpi }) => {
   const getIcon = () => {
     switch (kpi.name) {
       case 'Total Circulation':
-        return <BookOpen className="h-8 w-8 text-blue-500" />;
+        return <BookOpen size={24} className="text-blue-500" />;
       case 'Visits':
-        return <User className="h-8 w-8 text-green-500" />;
+        return <Users size={24} className="text-green-500" />;
       case 'Total Programs':
-        return <Calendar className="h-8 w-8 text-purple-500" />;
+        return <Calendar size={24} className="text-purple-500" />;
       case 'Program Attendance':
-        return <User className="h-8 w-8 text-orange-500" />;
+        return <Users size={24} className="text-orange-500" />;
       case 'Reference Transactions':
-        return <BarChart className="h-8 w-8 text-indigo-500" />;
+        return <BarChart3 size={24} className="text-indigo-500" />;
       default:
-        return <Library className="h-8 w-8 text-gray-500" />;
+        return <Library size={24} className="text-gray-500" />;
     }
   };
 
@@ -54,11 +56,11 @@ const StatCard: React.FC<{ kpi: KPI }> = ({ kpi }) => {
     if (!kpi.trend || !kpi.change_percent) return null;
     
     if (kpi.trend === 'up') {
-      return <LineChart className="h-4 w-4 text-green-500" />;
+      return <ArrowUpDown size={16} className="text-green-500" />;
     } else if (kpi.trend === 'down') {
-      return <ArrowDown className="h-4 w-4 text-red-500" />;
+      return <ArrowDown size={16} className="text-red-500" />;
     } else {
-      return <Minus className="h-4 w-4 text-gray-500" />;
+      return <Minus size={16} className="text-gray-500" />;
     }
   };
 
@@ -137,6 +139,15 @@ const Dashboard: React.FC = () => {
     );
   }
   
+  // Handle Select onChange events
+  const handleLibraryChange = (value: string) => {
+    setSelectedLibrary(value);
+  };
+  
+  const handleYearChange = (value: string) => {
+    setSelectedYear(parseInt(value));
+  };
+  
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -148,7 +159,7 @@ const Dashboard: React.FC = () => {
             <Select
               label="Library"
               value={selectedLibrary}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedLibrary(e.target.value)}
+              onChange={handleLibraryChange}
               options={libraries?.map((lib: LibraryProfile) => ({
                 value: lib.id,
                 label: lib.name
@@ -161,7 +172,7 @@ const Dashboard: React.FC = () => {
             <Select
               label="Year"
               value={selectedYear.toString()}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedYear(parseInt(e.target.value))}
+              onChange={handleYearChange}
               options={years.map(year => ({
                 value: year.toString(),
                 label: year.toString()
@@ -175,11 +186,11 @@ const Dashboard: React.FC = () => {
         <>
           <div className="mb-6">
             <div className="bg-white rounded-lg shadow p-4 flex items-center">
-              <Library className="h-6 w-6 text-blue-500 mr-3" />
+              <Library size={20} className="text-blue-500 mr-3" />
               <div>
                 <h2 className="text-xl font-semibold">{dashboardData.library_name}</h2>
                 <p className="text-gray-500 text-sm flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
+                  <Clock size={16} className="mr-1" />
                   Data for year {dashboardData.year}
                 </p>
               </div>
