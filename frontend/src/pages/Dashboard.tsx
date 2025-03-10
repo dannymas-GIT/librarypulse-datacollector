@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  BarChart3, 
-  Users, 
-  BookOpen, 
-  Calendar, 
-  ArrowUpDown, 
-  ArrowDown, 
-  Minus,
-  Library,
-  Clock
-} from 'lucide-react';
-import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import statsService from '@/services/statsService';
 import { libraryService } from '@/services/libraryService';
-import type { LibraryProfile } from '@/services/libraryService';
-import type { KPI, DashboardSummary } from '@/services/statsService';
+
+// Define types for KPI and DashboardSummary since they're not exported from statsService
+interface KPI {
+  name: string;
+  value: number;
+  previous_value?: number;
+  change_percent?: number;
+  trend?: string;
+  unit?: string;
+}
+
+interface DashboardSummary {
+  library_id: string;
+  library_name: string;
+  year: number;
+  kpis: KPI[];
+}
 
 // Helper function to format numbers
 const formatNumber = (num: number): string => {
@@ -31,63 +34,33 @@ const formatNumber = (num: number): string => {
   }
 };
 
-// Component for displaying a stat card
+// Simple stat card component
 const StatCard: React.FC<{ kpi: KPI }> = ({ kpi }) => {
-  // Determine icon based on metric name
-  const getIcon = () => {
-    switch (kpi.name) {
-      case 'Total Circulation':
-        return <BookOpen size={24} className="text-blue-500" />;
-      case 'Visits':
-        return <Users size={24} className="text-green-500" />;
-      case 'Total Programs':
-        return <Calendar size={24} className="text-purple-500" />;
-      case 'Program Attendance':
-        return <Users size={24} className="text-orange-500" />;
-      case 'Reference Transactions':
-        return <BarChart3 size={24} className="text-indigo-500" />;
-      default:
-        return <Library size={24} className="text-gray-500" />;
-    }
-  };
-
-  // Determine trend icon and color
-  const getTrendIcon = () => {
-    if (!kpi.trend || !kpi.change_percent) return null;
-    
-    if (kpi.trend === 'up') {
-      return <ArrowUpDown size={16} className="text-green-500" />;
-    } else if (kpi.trend === 'down') {
-      return <ArrowDown size={16} className="text-red-500" />;
-    } else {
-      return <Minus size={16} className="text-gray-500" />;
-    }
-  };
+  const trendText = kpi.trend === 'up' 
+    ? 'Increased' 
+    : kpi.trend === 'down' 
+      ? 'Decreased' 
+      : 'No change';
+  
+  const trendClass = kpi.trend === 'up' 
+    ? 'text-green-600' 
+    : kpi.trend === 'down' 
+      ? 'text-red-600' 
+      : 'text-gray-600';
 
   return (
-    <Card className="p-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-lg font-medium text-gray-500">{kpi.name}</h3>
-          <div className="mt-2 flex items-baseline">
-            <p className="text-3xl font-semibold">{formatNumber(kpi.value)}</p>
-            {kpi.unit && <span className="ml-1 text-sm text-gray-500">{kpi.unit}</span>}
-          </div>
-        </div>
-        <div className="p-3 bg-blue-50 rounded-full">
-          {getIcon()}
-        </div>
-      </div>
+    <div className="bg-white rounded-lg shadow p-6">
+      <h3 className="text-lg font-medium text-gray-500">{kpi.name}</h3>
+      <p className="text-3xl font-semibold mt-2">
+        {formatNumber(kpi.value)}
+        {kpi.unit && <span className="ml-1 text-sm text-gray-500">{kpi.unit}</span>}
+      </p>
       {kpi.change_percent !== undefined && (
-        <div className="mt-4 flex items-center text-sm">
-          {getTrendIcon()}
-          <span className={`ml-1 ${kpi.trend === 'up' ? 'text-green-600' : kpi.trend === 'down' ? 'text-red-600' : 'text-gray-600'}`}>
-            {Math.abs(kpi.change_percent).toFixed(1)}% {kpi.trend === 'up' ? 'increase' : kpi.trend === 'down' ? 'decrease' : 'no change'}
-          </span>
-          <span className="ml-1 text-gray-500">from previous year</span>
-        </div>
+        <p className={`mt-2 text-sm ${trendClass}`}>
+          {trendText} by {Math.abs(kpi.change_percent).toFixed(1)}% from previous year
+        </p>
       )}
-    </Card>
+    </div>
   );
 };
 
@@ -112,7 +85,7 @@ const Dashboard: React.FC = () => {
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useQuery({
     queryKey: ['dashboard', selectedLibrary, selectedYear],
     queryFn: async () => {
-      return statsService.getDashboardSummary(selectedLibrary, selectedYear);
+      return statsService.getDashboardSummary(selectedLibrary, selectedYear) as Promise<DashboardSummary>;
     },
     enabled: !!selectedLibrary
   });
@@ -160,7 +133,7 @@ const Dashboard: React.FC = () => {
               label="Library"
               value={selectedLibrary}
               onChange={handleLibraryChange}
-              options={libraries?.map((lib: LibraryProfile) => ({
+              options={libraries?.map(lib => ({
                 value: lib.id,
                 label: lib.name
               })) || []}
@@ -185,20 +158,16 @@ const Dashboard: React.FC = () => {
       {dashboardData && (
         <>
           <div className="mb-6">
-            <div className="bg-white rounded-lg shadow p-4 flex items-center">
-              <Library size={20} className="text-blue-500 mr-3" />
-              <div>
-                <h2 className="text-xl font-semibold">{dashboardData.library_name}</h2>
-                <p className="text-gray-500 text-sm flex items-center">
-                  <Clock size={16} className="mr-1" />
-                  Data for year {dashboardData.year}
-                </p>
-              </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <h2 className="text-xl font-semibold">{dashboardData.library_name}</h2>
+              <p className="text-gray-500 text-sm">
+                Data for year {dashboardData.year}
+              </p>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {dashboardData.kpis.map((kpi: KPI, index: number) => (
+            {dashboardData.kpis.map((kpi, index) => (
               <StatCard key={index} kpi={kpi} />
             ))}
           </div>

@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Search, Library, MapPin, Users, BookOpen, Calendar, Filter } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { libraryService } from '@/services/libraryService';
-import type { LibraryProfile, LibrarySearchResult } from '@/services/libraryService';
 
 // Define types
 interface LibraryLocation {
@@ -115,7 +112,6 @@ const Libraries: React.FC = () => {
               placeholder="Search libraries by name or location..."
               value={searchQuery}
               onChange={handleInputChange}
-              icon={<Search size={20} className="text-gray-400" />}
             />
           </div>
           
@@ -128,7 +124,6 @@ const Libraries: React.FC = () => {
                 { value: '', label: 'All Regions' },
                 ...regions.map(region => ({ value: region || '', label: region || 'Unknown' }))
               ]}
-              icon={<Filter size={20} className="text-gray-400" />}
             />
           </div>
         </form>
@@ -146,15 +141,11 @@ const Libraries: React.FC = () => {
       {/* Library cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {data?.libraries.map((library: LibraryProfile) => (
-          <Card key={library.id} className="p-0">
+          <div key={library.id} className="bg-white rounded-lg shadow overflow-hidden">
             <div className="p-4 border-b">
-              <h2 className="text-xl font-semibold flex items-center">
-                <Library size={20} className="text-blue-500 mr-2" />
-                {library.name}
-              </h2>
+              <h2 className="text-xl font-semibold">{library.name}</h2>
               {library.location && (
-                <p className="text-gray-600 flex items-center mt-1">
-                  <MapPin size={16} className="text-gray-400 mr-1" />
+                <p className="text-gray-600 mt-1">
                   {[
                     library.location.city,
                     library.location.state
@@ -165,8 +156,7 @@ const Libraries: React.FC = () => {
             
             <div className="p-4">
               {library.population_served && (
-                <div className="flex items-center mb-2">
-                  <Users size={16} className="text-gray-500 mr-2" />
+                <div className="mb-2">
                   <span className="text-sm">
                     Population Served: {library.population_served.toLocaleString()}
                   </span>
@@ -174,8 +164,7 @@ const Libraries: React.FC = () => {
               )}
               
               {library.service_area && (
-                <div className="flex items-center mb-2">
-                  <MapPin size={16} className="text-gray-500 mr-2" />
+                <div className="mb-2">
                   <span className="text-sm">
                     Service Area: {library.service_area}
                   </span>
@@ -183,8 +172,7 @@ const Libraries: React.FC = () => {
               )}
               
               {library.available_years && library.available_years.length > 0 && (
-                <div className="flex items-center mb-2">
-                  <Calendar size={16} className="text-gray-500 mr-2" />
+                <div className="mb-2">
                   <span className="text-sm">
                     Data Years: {Math.min(...library.available_years)} - {Math.max(...library.available_years)}
                   </span>
@@ -195,20 +183,18 @@ const Libraries: React.FC = () => {
             <div className="p-4 bg-gray-50 border-t">
               <Link
                 to={`/libraries/${library.id}`}
-                className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                className="text-blue-600 hover:text-blue-800 font-medium"
               >
-                <BookOpen size={16} className="mr-1" />
                 View Details
               </Link>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
       
       {/* No results */}
       {data?.libraries.length === 0 && (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <Library size={48} className="text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No libraries found</h3>
           <p className="text-gray-600">
             Try adjusting your search or filters to find what you're looking for.
