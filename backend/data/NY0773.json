@@ -1,0 +1,64 @@
+{
+  "id": "NY0773",
+  "name": "West Babylon Public Library",
+  "location": {
+    "address": "211 Route 109",
+    "city": "West Babylon",
+    "state": "NY",
+    "zip_code": "11704",
+    "latitude": 40.7128,
+    "longitude": -74.0060
+  },
+  "contact": {
+    "phone": "(631) 669-5445",
+    "email": "info@wbpl.us",
+    "website": "https://wbpl.us"
+  },
+  "service_area": "West Babylon",
+  "population_served": 43000,
+  "region": "Long Island",
+  "yearly_data": {
+    "2005": {
+      "visits": 180000,
+      "total_circulation": 320000,
+      "electronic_circulation": 50000,
+      "physical_circulation": 270000,
+      "total_programs": 450,
+      "total_program_attendance": 12000,
+      "reference_transactions": 15000,
+      "registered_users": 25000,
+      "print_collection": 120000,
+      "electronic_collection": 30000,
+      "audio_collection": 8000,
+      "video_collection": 12000
+    },
+    "2006": {
+      "visits": 195000,
+      "total_circulation": 350000,
+      "electronic_circulation": 65000,
+      "physical_circulation": 285000,
+      "total_programs": 480,
+      "total_program_attendance": 13500,
+      "reference_transactions": 16000,
+      "registered_users": 26500,
+      "print_collection": 125000,
+      "electronic_collection": 35000,
+      "audio_collection": 9000,
+      "video_collection": 13000
+    },
+    "2007": {
+      "visits": 210000,
+      "total_circulation": 380000,
+      "electronic_circulation": 85000,
+      "physical_circulation": 295000,
+      "total_programs": 520,
+      "total_program_attendance": 15000,
+      "reference_transactions": 17000,
+      "registered_users": 28000,
+      "print_collection": 130000,
+      "electronic_collection": 42000,
+      "audio_collection": 10000,
+      "video_collection": 14000
+    }
+  }
+} 

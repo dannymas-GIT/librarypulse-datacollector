@@ -1,0 +1,64 @@
+{
+  "id": "NY0001",
+  "name": "New York Public Library",
+  "location": {
+    "address": "476 5th Ave",
+    "city": "New York",
+    "state": "NY",
+    "zip_code": "10018",
+    "latitude": 40.7532,
+    "longitude": -73.9822
+  },
+  "contact": {
+    "phone": "(917) 275-6975",
+    "email": "info@nypl.org",
+    "website": "https://nypl.org"
+  },
+  "service_area": "New York City",
+  "population_served": 3700000,
+  "region": "New York City",
+  "yearly_data": {
+    "2005": {
+      "visits": 16000000,
+      "total_circulation": 22000000,
+      "electronic_circulation": 6000000,
+      "physical_circulation": 16000000,
+      "total_programs": 25000,
+      "total_program_attendance": 750000,
+      "reference_transactions": 3000000,
+      "registered_users": 2000000,
+      "print_collection": 15000000,
+      "electronic_collection": 4000000,
+      "audio_collection": 500000,
+      "video_collection": 750000
+    },
+    "2006": {
+      "visits": 17000000,
+      "total_circulation": 24000000,
+      "electronic_circulation": 8000000,
+      "physical_circulation": 16000000,
+      "total_programs": 27000,
+      "total_program_attendance": 800000,
+      "reference_transactions": 3200000,
+      "registered_users": 2100000,
+      "print_collection": 15500000,
+      "electronic_collection": 4500000,
+      "audio_collection": 550000,
+      "video_collection": 800000
+    },
+    "2007": {
+      "visits": 18000000,
+      "total_circulation": 26000000,
+      "electronic_circulation": 10000000,
+      "physical_circulation": 16000000,
+      "total_programs": 29000,
+      "total_program_attendance": 850000,
+      "reference_transactions": 3400000,
+      "registered_users": 2200000,
+      "print_collection": 16000000,
+      "electronic_collection": 5000000,
+      "audio_collection": 600000,
+      "video_collection": 850000
+    }
+  }
+} 
