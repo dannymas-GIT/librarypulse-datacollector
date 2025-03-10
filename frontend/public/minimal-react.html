@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal React App</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: #f5f7fa;
+    }
+    .app-container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 24px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e3a8a;
+    }
+    .button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .button:hover {
+      background-color: #2563eb;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #3b82f6;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      color: #ef4444;
+      padding: 16px;
+      background-color: #fee2e2;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    .library-info {
+      margin-bottom: 24px;
+    }
+    .years-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .year-tag {
+      background-color: #e0f2fe;
+      color: #0369a1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // App component
+    function App() {
+      const [loading, setLoading] = React.useState(false);
+      const [error, setError] = React.useState(null);
+      const [libraryData, setLibraryData] = React.useState(null);
+      const [years, setYears] = React.useState([]);
+      
+      const fetchLibraryData = async () => {
+        setLoading(true);
+        setError(null);
+        
+        try {
+          const response = await fetch('http://localhost:8000/api/historical/summary');
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          setLibraryData(data);
+          console.log('Library data:', data);
+          
+          // Fetch years
+          const yearsResponse = await fetch('http://localhost:8000/api/historical/years');
+          if (!yearsResponse.ok) {
+            throw new Error(`API error: ${yearsResponse.status} ${yearsResponse.statusText}`);
+          }
+          
+          const yearsData = await yearsResponse.json();
+          setYears(yearsData);
+          console.log('Years data:', yearsData);
+          
+        } catch (err) {
+          console.error('Error fetching data:', err);
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      return (
+        <div className="app-container">
+          <div className="header">
+            <div className="logo">IMLS Library Pulse</div>
+            <button className="button" onClick={fetchLibraryData}>
+              Fetch Library Data
+            </button>
+          </div>
+          
+          {error && (
+            <div className="error">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+          
+          {loading ? (
+            <div className="loading">
+              <div className="spinner"></div>
+            </div>
+          ) : libraryData ? (
+            <div className="library-info">
+              <h2>{libraryData.name}</h2>
+              <p><strong>Library ID:</strong> {libraryData.id}</p>
+              
+              <h3>Available Years:</h3>
+              <div className="years-list">
+                {libraryData.available_years && libraryData.available_years.map(year => (
+                  <span key={year} className="year-tag">{year}</span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p>Click the button to fetch library data</p>
+          )}
+          
+          {years.length > 0 && (
+            <div>
+              <h3>Years from API:</h3>
+              <div className="years-list">
+                {years.map(year => (
+                  <span key={year} className="year-tag">{year}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Render the App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html> 

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Console Log Capture</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: #f5f7fa;
+    }
+    h1 {
+      color: #1e3a8a;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    .console-log {
+      background-color: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-entry.error {
+      background-color: #fee2e2;
+      border-left: 4px solid #ef4444;
+    }
+    .log-entry.warning {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+    }
+    .log-entry.info {
+      background-color: #e0f2fe;
+      border-left: 4px solid #3b82f6;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    #iframe-container {
+      margin-top: 20px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Console Log Capture</h1>
+  
+  <div class="actions">
+    <button id="clearBtn">Clear Console</button>
+    <button id="loadMainBtn">Load Main App in iframe</button>
+    <button id="checkNetworkBtn">Check Network Status</button>
+  </div>
+  
+  <h2>Console Output</h2>
+  <div id="consoleLog" class="console-log"></div>
+  
+  <div id="iframe-container" style="display: none;">
+    <iframe id="app-iframe" src="about:blank"></iframe>
+  </div>
+  
+  <script>
+    // DOM Elements
+    const consoleLogDiv = document.getElementById('consoleLog');
+    const iframeContainer = document.getElementById('iframe-container');
+    const iframe = document.getElementById('app-iframe');
+    
+    // Store original console methods
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info
+    };
+    
+    // Override console methods
+    console.log = function(...args) {
+      addLogEntry('info', args);
+      originalConsole.log.apply(console, args);
+    };
+    
+    console.error = function(...args) {
+      addLogEntry('error', args);
+      originalConsole.error.apply(console, args);
+    };
+    
+    console.warn = function(...args) {
+      addLogEntry('warning', args);
+      originalConsole.warn.apply(console, args);
+    };
+    
+    console.info = function(...args) {
+      addLogEntry('info', args);
+      originalConsole.info.apply(console, args);
+    };
+    
+    function addLogEntry(type, args) {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      
+      const content = args.map(arg => {
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }).join(' ');
+      
+      entry.textContent = `[${new Date().toLocaleTimeString()}] [${type.toUpperCase()}] ${content}`;
+      consoleLogDiv.appendChild(entry);
+      consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+    }
+    
+    // Clear console button
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      consoleLogDiv.innerHTML = '';
+    });
+    
+    // Load main app in iframe
+    document.getElementById('loadMainBtn').addEventListener('click', () => {
+      console.info('Loading main app in iframe...');
+      iframeContainer.style.display = 'block';
+      iframe.src = '/';
+      
+      // Listen for messages from the iframe
+      window.addEventListener('message', (event) => {
+        if (event.source === iframe.contentWindow) {
+          console.info('Message from iframe:', event.data);
+        }
+      });
+      
+      // Listen for errors in the iframe
+      iframe.onerror = (error) => {
+        console.error('Iframe error:', error);
+      };
+      
+      // Try to access iframe console
+      try {
+        setTimeout(() => {
+          const iframeWindow = iframe.contentWindow;
+          const originalConsoleLog = iframeWindow.console.log;
+          const originalConsoleError = iframeWindow.console.error;
+          const originalConsoleWarn = iframeWindow.console.warn;
+          
+          iframeWindow.console.log = function(...args) {
+            console.log('[IFRAME]', ...args);
+            originalConsoleLog.apply(iframeWindow.console, args);
+          };
+          
+          iframeWindow.console.error = function(...args) {
+            console.error('[IFRAME]', ...args);
+            originalConsoleError.apply(iframeWindow.console, args);
+          };
+          
+          iframeWindow.console.warn = function(...args) {
+            console.warn('[IFRAME]', ...args);
+            originalConsoleWarn.apply(iframeWindow.console, args);
+          };
+          
+          console.info('Successfully intercepted iframe console methods');
+        }, 2000);
+      } catch (e) {
+        console.error('Failed to intercept iframe console:', e);
+      }
+    });
+    
+    // Check network status
+    document.getElementById('checkNetworkBtn').addEventListener('click', async () => {
+      console.info('Checking network status...');
+      
+      try {
+        // Check main app
+        const mainResponse = await fetch('/', { method: 'HEAD' });
+        console.info(`Main app response: ${mainResponse.status} ${mainResponse.statusText}`);
+        
+        // Check API
+        const apiResponse = await fetch('http://localhost:8000/api/historical/summary', { method: 'HEAD' });
+        console.info(`API response: ${apiResponse.status} ${apiResponse.statusText}`);
+        
+        // Check external resources
+        const googleFontsResponse = await fetch('https://fonts.googleapis.com', { method: 'HEAD' });
+        console.info(`Google Fonts response: ${googleFontsResponse.status} ${googleFontsResponse.statusText}`);
+      } catch (error) {
+        console.error('Network check error:', error);
+      }
+    });
+    
+    // Log initial page load
+    console.info('Console capture loaded at', new Date().toLocaleString());
+    
+    // Add script to inject into iframe
+    const injectScript = `
+      window.addEventListener('error', function(event) {
+        window.parent.postMessage({
+          type: 'error',
+          message: event.message,
+          source: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          error: event.error ? event.error.stack : null
+        }, '*');
+        return false;
+      });
+      
+      window.addEventListener('unhandledrejection', function(event) {
+        window.parent.postMessage({
+          type: 'unhandledrejection',
+          reason: event.reason ? event.reason.message : 'Unknown promise rejection'
+        }, '*');
+        return false;
+      });
+      
+      console.log = function() {
+        window.parent.postMessage({
+          type: 'log',
+          args: Array.from(arguments).map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg))
+        }, '*');
+        return window.originalConsoleLog.apply(console, arguments);
+      };
+      
+      console.error = function() {
+        window.parent.postMessage({
+          type: 'error',
+          args: Array.from(arguments).map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg))
+        }, '*');
+        return window.originalConsoleError.apply(console, arguments);
+      };
+      
+      console.warn = function() {
+        window.parent.postMessage({
+          type: 'warn',
+          args: Array.from(arguments).map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg))
+        }, '*');
+        return window.originalConsoleWarn.apply(console, arguments);
+      };
+    `;
+    
+    // Function to inject script into iframe
+    function injectScriptIntoIframe() {
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const scriptElement = iframeDoc.createElement('script');
+        scriptElement.textContent = `
+          window.originalConsoleLog = console.log;
+          window.originalConsoleError = console.error;
+          window.originalConsoleWarn = console.warn;
+          ${injectScript}
+        `;
+        iframeDoc.head.appendChild(scriptElement);
+        console.info('Script injected into iframe');
+      } catch (e) {
+        console.error('Failed to inject script into iframe:', e);
+      }
+    }
+    
+    // Inject script when iframe loads
+    iframe.addEventListener('load', injectScriptIntoIframe);
+  </script>
+</body>
+</html> 

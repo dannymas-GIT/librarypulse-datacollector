@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Connectivity Check</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #f5f7fa;
+    }
+    h1 {
+      color: #1e3a8a;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .status-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .status-pending .status-icon {
+      background-color: #9ca3af;
+    }
+    .status-success .status-icon {
+      background-color: #10b981;
+    }
+    .status-error .status-icon {
+      background-color: #ef4444;
+    }
+    .status-pending {
+      background-color: #f3f4f6;
+    }
+    .status-success {
+      background-color: #d1fae5;
+    }
+    .status-error {
+      background-color: #fee2e2;
+    }
+    .button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-right: 8px;
+    }
+    .button:hover {
+      background-color: #2563eb;
+    }
+    .details {
+      margin-top: 8px;
+      padding: 8px;
+      background-color: #f8fafc;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .spinner {
+      border: 2px solid rgba(0, 0, 0, 0.1);
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border-left-color: #3b82f6;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Network Connectivity Check</h1>
+  
+  <div class="card">
+    <h2>Browser Information</h2>
+    <div id="browser-info"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Network Status</h2>
+    <div id="network-status"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Endpoint Tests</h2>
+    <div>
+      <button id="run-all-tests" class="button">Run All Tests</button>
+      <button id="clear-results" class="button">Clear Results</button>
+    </div>
+    <div id="endpoint-tests"></div>
+  </div>
+  
+  <div class="card">
+    <h2>CORS Test</h2>
+    <div>
+      <button id="run-cors-test" class="button">Run CORS Test</button>
+    </div>
+    <div id="cors-test-results"></div>
+  </div>
+  
+  <script>
+    // DOM Elements
+    const browserInfoEl = document.getElementById('browser-info');
+    const networkStatusEl = document.getElementById('network-status');
+    const endpointTestsEl = document.getElementById('endpoint-tests');
+    const corsTestResultsEl = document.getElementById('cors-test-results');
+    const runAllTestsBtn = document.getElementById('run-all-tests');
+    const clearResultsBtn = document.getElementById('clear-results');
+    const runCorsTestBtn = document.getElementById('run-cors-test');
+    
+    // Display browser information
+    function displayBrowserInfo() {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookiesEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine
+      };
+      
+      let html = '';
+      for (const [key, value] of Object.entries(info)) {
+        html += `<div><strong>${key}:</strong> ${value}</div>`;
+      }
+      
+      browserInfoEl.innerHTML = html;
+    }
+    
+    // Display network status
+    function displayNetworkStatus() {
+      const online = navigator.onLine;
+      
+      networkStatusEl.innerHTML = `
+        <div class="status ${online ? 'status-success' : 'status-error'}">
+          <div class="status-icon"></div>
+          <div>
+            <strong>Connection Status:</strong> ${online ? 'Online' : 'Offline'}
+          </div>
+        </div>
+      `;
+      
+      // Add event listeners for online/offline events
+      window.addEventListener('online', () => {
+        displayNetworkStatus();
+      });
+      
+      window.addEventListener('offline', () => {
+        displayNetworkStatus();
+      });
+    }
+    
+    // Test endpoints
+    const endpoints = [
+      { name: 'Main App', url: '/', method: 'HEAD' },
+      { name: 'API Root', url: 'http://localhost:8000/api', method: 'GET' },
+      { name: 'Historical Summary', url: 'http://localhost:8000/api/historical/summary', method: 'GET' },
+      { name: 'Historical Years', url: 'http://localhost:8000/api/historical/years', method: 'GET' },
+      { name: 'Google Fonts', url: 'https://fonts.googleapis.com', method: 'HEAD' },
+      { name: 'Google CDN', url: 'https://fonts.gstatic.com', method: 'HEAD' }
+    ];
+    
+    async function testEndpoint(endpoint) {
+      const statusEl = document.createElement('div');
+      statusEl.className = 'status status-pending';
+      statusEl.innerHTML = `
+        <div class="status-icon"></div>
+        <div>
+          <strong>${endpoint.name}:</strong> <span class="spinner"></span> Testing...
+        </div>
+      `;
+      
+      endpointTestsEl.appendChild(statusEl);
+      
+      try {
+        const startTime = performance.now();
+        const response = await fetch(endpoint.url, { method: endpoint.method });
+        const endTime = performance.now();
+        const duration = Math.round(endTime - startTime);
+        
+        let details = '';
+        if (endpoint.method !== 'HEAD') {
+          try {
+            const data = await response.clone().text();
+            details = `<div class="details">${data.substring(0, 500)}${data.length > 500 ? '...' : ''}</div>`;
+          } catch (e) {
+            details = `<div class="details">Error getting response text: ${e.message}</div>`;
+          }
+        }
+        
+        statusEl.className = `status ${response.ok ? 'status-success' : 'status-error'}`;
+        statusEl.innerHTML = `
+          <div class="status-icon"></div>
+          <div>
+            <strong>${endpoint.name}:</strong> ${response.status} ${response.statusText} (${duration}ms)
+            <div><strong>URL:</strong> ${endpoint.url}</div>
+            ${details}
+          </div>
+        `;
+      } catch (error) {
+        statusEl.className = 'status status-error';
+        statusEl.innerHTML = `
+          <div class="status-icon"></div>
+          <div>
+            <strong>${endpoint.name}:</strong> Error - ${error.message}
+            <div><strong>URL:</strong> ${endpoint.url}</div>
+          </div>
+        `;
+      }
+    }
+    
+    async function runAllTests() {
+      endpointTestsEl.innerHTML = '';
+      for (const endpoint of endpoints) {
+        await testEndpoint(endpoint);
+      }
+    }
+    
+    // CORS test
+    async function runCorsTest() {
+      corsTestResultsEl.innerHTML = '';
+      
+      const statusEl = document.createElement('div');
+      statusEl.className = 'status status-pending';
+      statusEl.innerHTML = `
+        <div class="status-icon"></div>
+        <div>
+          <strong>CORS Test:</strong> <span class="spinner"></span> Testing...
+        </div>
+      `;
+      
+      corsTestResultsEl.appendChild(statusEl);
+      
+      try {
+        // Test with credentials
+        const response = await fetch('http://localhost:8000/api/historical/summary', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        const data = await response.json();
+        
+        statusEl.className = 'status status-success';
+        statusEl.innerHTML = `
+          <div class="status-icon"></div>
+          <div>
+            <strong>CORS Test:</strong> Success - ${response.status} ${response.statusText}
+            <div><strong>Headers:</strong></div>
+            <div class="details">${Array.from(response.headers).map(([key, value]) => `${key}: ${value}`).join('\n')}</div>
+            <div><strong>Data:</strong></div>
+            <div class="details">${JSON.stringify(data, null, 2)}</div>
+          </div>
+        `;
+      } catch (error) {
+        statusEl.className = 'status status-error';
+        statusEl.innerHTML = `
+          <div class="status-icon"></div>
+          <div>
+            <strong>CORS Test:</strong> Error - ${error.message}
+            <div class="details">${error.stack}</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Event listeners
+    runAllTestsBtn.addEventListener('click', runAllTests);
+    clearResultsBtn.addEventListener('click', () => {
+      endpointTestsEl.innerHTML = '';
+      corsTestResultsEl.innerHTML = '';
+    });
+    runCorsTestBtn.addEventListener('click', runCorsTest);
+    
+    // Initialize
+    displayBrowserInfo();
+    displayNetworkStatus();
+  </script>
+</body>
+</html> 

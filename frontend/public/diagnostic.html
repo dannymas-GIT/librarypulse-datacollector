@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Pulse Diagnostic Tool</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: #f5f7fa;
+    }
+    h1 {
+      color: #1e3a8a;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .button:hover {
+      background-color: #2563eb;
+    }
+    .log {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #f8fafc;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin-bottom: 4px;
+      padding: 4px;
+      border-radius: 2px;
+    }
+    .log-entry.error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .log-entry.success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .log-entry.info {
+      background-color: #e0f2fe;
+      color: #0369a1;
+    }
+    .log-entry.warning {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 16px;
+    }
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      border-bottom-color: #3b82f6;
+      color: #1e3a8a;
+      font-weight: 500;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .resource-list {
+      margin-top: 16px;
+    }
+    .resource-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .resource-item:nth-child(odd) {
+      background-color: #f8fafc;
+    }
+    .resource-status {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 12px;
+    }
+    .resource-status.pending {
+      background-color: #9ca3af;
+    }
+    .resource-status.success {
+      background-color: #10b981;
+    }
+    .resource-status.error {
+      background-color: #ef4444;
+    }
+    .resource-url {
+      flex-grow: 1;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .resource-time {
+      margin-left: 12px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .error-details {
+      margin-top: 8px;
+      padding: 8px;
+      background-color: #fee2e2;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Library Pulse Diagnostic Tool</h1>
+  
+  <div class="tabs">
+    <div class="tab active" data-tab="network">Network</div>
+    <div class="tab" data-tab="resources">Resources</div>
+    <div class="tab" data-tab="console">Console</div>
+    <div class="tab" data-tab="storage">Storage</div>
+  </div>
+  
+  <div class="tab-content active" id="network-tab">
+    <div class="card">
+      <h2>API Connectivity</h2>
+      <button id="test-api-btn" class="button">Test API Connectivity</button>
+      <div id="api-log" class="log"></div>
+    </div>
+    
+    <div class="card">
+      <h2>External Resources</h2>
+      <button id="test-external-btn" class="button">Test External Resources</button>
+      <div id="external-log" class="log"></div>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="resources-tab">
+    <div class="card">
+      <h2>Resource Loading</h2>
+      <button id="test-resources-btn" class="button">Test Resource Loading</button>
+      <div id="resources-log" class="log"></div>
+      <div id="resource-list" class="resource-list"></div>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="console-tab">
+    <div class="card">
+      <h2>Console Output</h2>
+      <button id="clear-console-btn" class="button">Clear Console</button>
+      <div id="console-log" class="log"></div>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="storage-tab">
+    <div class="card">
+      <h2>Local Storage</h2>
+      <button id="view-storage-btn" class="button">View Storage</button>
+      <button id="clear-storage-btn" class="button">Clear Storage</button>
+      <div id="storage-log" class="log"></div>
+    </div>
+  </div>
+  
+  <script>
+    // DOM Elements
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const apiLogEl = document.getElementById('api-log');
+    const externalLogEl = document.getElementById('external-log');
+    const resourcesLogEl = document.getElementById('resources-log');
+    const consoleLogEl = document.getElementById('console-log');
+    const storageLogEl = document.getElementById('storage-log');
+    const resourceListEl = document.getElementById('resource-list');
+    
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+      });
+    });
+    
+    // Logging functions
+    function logToElement(element, message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      element.appendChild(entry);
+      element.scrollTop = element.scrollHeight;
+    }
+    
+    // API testing
+    document.getElementById('test-api-btn').addEventListener('click', async () => {
+      apiLogEl.innerHTML = '';
+      logToElement(apiLogEl, 'Testing API connectivity...');
+      
+      const endpoints = [
+        { name: 'API Root', url: 'http://localhost:8000/api' },
+        { name: 'Historical Summary', url: 'http://localhost:8000/api/historical/summary' },
+        { name: 'Historical Years', url: 'http://localhost:8000/api/historical/years' }
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          logToElement(apiLogEl, `Testing ${endpoint.name} (${endpoint.url})...`);
+          
+          const startTime = performance.now();
+          const response = await fetch(endpoint.url);
+          const endTime = performance.now();
+          const duration = Math.round(endTime - startTime);
+          
+          if (response.ok) {
+            const data = await response.json();
+            logToElement(
+              apiLogEl, 
+              `✅ ${endpoint.name}: ${response.status} ${response.statusText} (${duration}ms)`,
+              'success'
+            );
+            logToElement(
+              apiLogEl, 
+              `Response: ${JSON.stringify(data, null, 2)}`,
+              'info'
+            );
+          } else {
+            logToElement(
+              apiLogEl, 
+              `❌ ${endpoint.name}: ${response.status} ${response.statusText} (${duration}ms)`,
+              'error'
+            );
+          }
+        } catch (error) {
+          logToElement(
+            apiLogEl, 
+            `❌ ${endpoint.name}: ${error.message}`,
+            'error'
+          );
+        }
+      }
+    });
+    
+    // External resources testing
+    document.getElementById('test-external-btn').addEventListener('click', async () => {
+      externalLogEl.innerHTML = '';
+      logToElement(externalLogEl, 'Testing external resources...');
+      
+      const resources = [
+        { name: 'Google Fonts API', url: 'https://fonts.googleapis.com' },
+        { name: 'Google Fonts CDN', url: 'https://fonts.gstatic.com' },
+        { name: 'Unpkg CDN', url: 'https://unpkg.com' }
+      ];
+      
+      for (const resource of resources) {
+        try {
+          logToElement(externalLogEl, `Testing ${resource.name} (${resource.url})...`);
+          
+          const startTime = performance.now();
+          const response = await fetch(resource.url, { method: 'HEAD' });
+          const endTime = performance.now();
+          const duration = Math.round(endTime - startTime);
+          
+          if (response.ok) {
+            logToElement(
+              externalLogEl, 
+              `✅ ${resource.name}: ${response.status} ${response.statusText} (${duration}ms)`,
+              'success'
+            );
+          } else {
+            logToElement(
+              externalLogEl, 
+              `❌ ${resource.name}: ${response.status} ${response.statusText} (${duration}ms)`,
+              'error'
+            );
+          }
+        } catch (error) {
+          logToElement(
+            externalLogEl, 
+            `❌ ${resource.name}: ${error.message}`,
+            'error'
+          );
+        }
+      }
+    });
+    
+    // Resource loading test
+    document.getElementById('test-resources-btn').addEventListener('click', () => {
+      resourcesLogEl.innerHTML = '';
+      resourceListEl.innerHTML = '';
+      
+      logToElement(resourcesLogEl, 'Testing resource loading...');
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = '/';
+      
+      // Track resource loading
+      const resources = [];
+      
+      const originalFetch = window.fetch;
+      window.fetch = function(url, options) {
+        const resource = {
+          url: url,
+          type: 'fetch',
+          startTime: performance.now(),
+          status: 'pending'
+        };
+        resources.push(resource);
+        updateResourceList();
+        
+        return originalFetch.apply(this, arguments)
+          .then(response => {
+            resource.endTime = performance.now();
+            resource.duration = Math.round(resource.endTime - resource.startTime);
+            resource.status = response.ok ? 'success' : 'error';
+            resource.statusCode = response.status;
+            resource.statusText = response.statusText;
+            updateResourceList();
+            return response;
+          })
+          .catch(error => {
+            resource.endTime = performance.now();
+            resource.duration = Math.round(resource.endTime - resource.startTime);
+            resource.status = 'error';
+            resource.error = error.message;
+            updateResourceList();
+            throw error;
+          });
+      };
+      
+      // Update resource list
+      function updateResourceList() {
+        resourceListEl.innerHTML = '';
+        
+        resources.forEach(resource => {
+          const item = document.createElement('div');
+          item.className = 'resource-item';
+          
+          const status = document.createElement('div');
+          status.className = `resource-status ${resource.status}`;
+          
+          const url = document.createElement('div');
+          url.className = 'resource-url';
+          url.textContent = resource.url;
+          
+          const time = document.createElement('div');
+          time.className = 'resource-time';
+          time.textContent = resource.duration ? `${resource.duration}ms` : 'Loading...';
+          
+          item.appendChild(status);
+          item.appendChild(url);
+          item.appendChild(time);
+          
+          if (resource.status === 'error' && resource.error) {
+            const errorDetails = document.createElement('div');
+            errorDetails.className = 'error-details';
+            errorDetails.textContent = resource.error;
+            item.appendChild(errorDetails);
+          }
+          
+          resourceListEl.appendChild(item);
+        });
+      }
+      
+      // Listen for load event
+      iframe.onload = () => {
+        logToElement(resourcesLogEl, 'Main page loaded in iframe');
+        
+        // Restore original fetch
+        window.fetch = originalFetch;
+        
+        // Remove iframe after a delay
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      };
+      
+      // Listen for error event
+      iframe.onerror = () => {
+        logToElement(resourcesLogEl, 'Error loading main page in iframe', 'error');
+        
+        // Restore original fetch
+        window.fetch = originalFetch;
+        
+        // Remove iframe
+        document.body.removeChild(iframe);
+      };
+      
+      document.body.appendChild(iframe);
+    });
+    
+    // Console capture
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info
+    };
+    
+    console.log = function() {
+      logToElement(consoleLogEl, Array.from(arguments).join(' '), 'info');
+      return originalConsole.log.apply(console, arguments);
+    };
+    
+    console.error = function() {
+      logToElement(consoleLogEl, Array.from(arguments).join(' '), 'error');
+      return originalConsole.error.apply(console, arguments);
+    };
+    
+    console.warn = function() {
+      logToElement(consoleLogEl, Array.from(arguments).join(' '), 'warning');
+      return originalConsole.warn.apply(console, arguments);
+    };
+    
+    console.info = function() {
+      logToElement(consoleLogEl, Array.from(arguments).join(' '), 'info');
+      return originalConsole.info.apply(console, arguments);
+    };
+    
+    // Clear console
+    document.getElementById('clear-console-btn').addEventListener('click', () => {
+      consoleLogEl.innerHTML = '';
+    });
+    
+    // View storage
+    document.getElementById('view-storage-btn').addEventListener('click', () => {
+      storageLogEl.innerHTML = '';
+      
+      // Local Storage
+      logToElement(storageLogEl, 'Local Storage:');
+      if (localStorage.length === 0) {
+        logToElement(storageLogEl, 'Local Storage is empty');
+      } else {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          const value = localStorage.getItem(key);
+          logToElement(storageLogEl, `${key}: ${value}`);
+        }
+      }
+      
+      // Session Storage
+      logToElement(storageLogEl, 'Session Storage:');
+      if (sessionStorage.length === 0) {
+        logToElement(storageLogEl, 'Session Storage is empty');
+      } else {
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          const value = sessionStorage.getItem(key);
+          logToElement(storageLogEl, `${key}: ${value}`);
+        }
+      }
+      
+      // Cookies
+      logToElement(storageLogEl, 'Cookies:');
+      if (document.cookie) {
+        document.cookie.split(';').forEach(cookie => {
+          logToElement(storageLogEl, cookie.trim());
+        });
+      } else {
+        logToElement(storageLogEl, 'No cookies found');
+      }
+    });
+    
+    // Clear storage
+    document.getElementById('clear-storage-btn').addEventListener('click', () => {
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear cookies
+      document.cookie.split(';').forEach(cookie => {
+        const [name] = cookie.trim().split('=');
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+      });
+      
+      logToElement(storageLogEl, 'All storage cleared', 'success');
+    });
+    
+    // Initialize
+    console.info('Diagnostic tool loaded');
+  </script>
+</body>
+</html> 

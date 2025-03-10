@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Debug Page</h1>
+  <p>This is a simple HTML page with no dependencies to test basic browser connectivity.</p>
+  
+  <div id="status" class="success">
+    If you can see this, the basic HTML is loading correctly!
+  </div>
+  
+  <h2>Browser Information:</h2>
+  <pre id="browserInfo"></pre>
+  
+  <h2>Network Test:</h2>
+  <button id="testApi">Test API Connection</button>
+  <pre id="apiResult">Click the button to test the API connection...</pre>
+  
+  <script>
+    // Display browser information
+    const browserInfo = document.getElementById('browserInfo');
+    browserInfo.textContent = `
+User Agent: ${navigator.userAgent}
+Platform: ${navigator.platform}
+Cookies Enabled: ${navigator.cookieEnabled}
+Language: ${navigator.language}
+Online: ${navigator.onLine}
+    `;
+    
+    // Test API connection
+    document.getElementById('testApi').addEventListener('click', async () => {
+      const apiResult = document.getElementById('apiResult');
+      apiResult.textContent = 'Testing API connection...';
+      
+      try {
+        const response = await fetch('http://localhost:8000/api/historical/years');
+        const status = response.status;
+        const statusText = response.statusText;
+        const headers = {};
+        for (const [key, value] of response.headers.entries()) {
+          headers[key] = value;
+        }
+        
+        const data = await response.json();
+        
+        apiResult.textContent = `
+Status: ${status} ${statusText}
+Headers: ${JSON.stringify(headers, null, 2)}
+Data: ${JSON.stringify(data, null, 2)}
+        `;
+      } catch (error) {
+        apiResult.textContent = `Error: ${error.message}`;
+        apiResult.className = 'error';
+      }
+    });
+  </script>
+</body>
+</html> 

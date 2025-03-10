@@ -1,0 +1,58 @@
+{
+  "library_id": "NY0773",
+  "name": "West Babylon Public Library",
+  "year": 2022,
+  "location": {
+    "address": "211 Route 109",
+    "city": "West Babylon",
+    "state": "NY",
+    "zip_code": "11704",
+    "county": "Suffolk"
+  },
+  "service_area_population": 43000,
+  "facilities": {
+    "central_libraries": 1,
+    "branch_libraries": 0,
+    "bookmobiles": null
+  },
+  "usage": {
+    "visits": 175000,
+    "total_circulation": 210000,
+    "electronic_circulation": null,
+    "reference_transactions": null,
+    "registered_users": null
+  },
+  "collection": {
+    "print_materials": 115000,
+    "electronic_materials": 25000,
+    "audio_materials": 12000,
+    "video_materials": 18000
+  },
+  "programs": {
+    "total_programs": 420,
+    "total_attendance": 8500
+  },
+  "staff": {
+    "total_staff": 42.5,
+    "librarians": 12.5
+  },
+  "financial": {
+    "total_revenue": 3750000.0,
+    "total_expenditures": 3600000.0,
+    "staff_expenditures": 2400000.0,
+    "collection_expenditures": 450000.0
+  },
+  "outlets": [
+    {
+      "outlet_id": "NY0773_01",
+      "name": "West Babylon Public Library",
+      "type": "CE",
+      "address": "211 Route 109",
+      "city": "West Babylon",
+      "state": "NY",
+      "zip_code": "11704",
+      "square_feet": 28000,
+      "hours": 56.0
+    }
+  ]
+}

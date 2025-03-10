@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Pulse App Launcher</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #f5f7fa;
+    }
+    h1 {
+      color: #1e3a8a;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .button:hover {
+      background-color: #2563eb;
+    }
+    .button.secondary {
+      background-color: #6b7280;
+    }
+    .button.secondary:hover {
+      background-color: #4b5563;
+    }
+    .button.danger {
+      background-color: #ef4444;
+    }
+    .button.danger:hover {
+      background-color: #dc2626;
+    }
+    .log {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #f8fafc;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin-bottom: 4px;
+      padding: 4px;
+      border-radius: 2px;
+    }
+    .log-entry.error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .log-entry.success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .log-entry.info {
+      background-color: #e0f2fe;
+      color: #0369a1;
+    }
+    .app-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .app-card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+    }
+    .app-card h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .app-card p {
+      margin-top: 0;
+      margin-bottom: 16px;
+      flex-grow: 1;
+      color: #4b5563;
+      font-size: 14px;
+    }
+    .app-card .button {
+      margin-right: 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Library Pulse App Launcher</h1>
+  
+  <div class="card">
+    <h2>Main Application</h2>
+    <p>Launch the main application with different configurations:</p>
+    
+    <a href="/" class="button">Main App</a>
+    <a href="/index-debug.html" class="button">Debug Mode</a>
+    <a href="/index-bypass.html" class="button secondary">Bypass Setup</a>
+    <button id="clear-cache-btn" class="button danger">Clear Cache & Reload</button>
+    
+    <div id="main-app-log" class="log"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Diagnostic Tools</h2>
+    <div class="app-list">
+      <div class="app-card">
+        <h3>Network Check</h3>
+        <p>Test connectivity to API and external resources</p>
+        <a href="/network-check.html" class="button">Open</a>
+      </div>
+      
+      <div class="app-card">
+        <h3>Console Capture</h3>
+        <p>Capture and display console logs</p>
+        <a href="/console-capture.html" class="button">Open</a>
+      </div>
+      
+      <div class="app-card">
+        <h3>Simple App</h3>
+        <p>Simplified version without React</p>
+        <a href="/simple-app.html" class="button">Open</a>
+      </div>
+      
+      <div class="app-card">
+        <h3>Minimal React</h3>
+        <p>Minimal React app with CDN dependencies</p>
+        <a href="/minimal-react.html" class="button">Open</a>
+      </div>
+      
+      <div class="app-card">
+        <h3>Standalone</h3>
+        <p>Standalone app with no external dependencies</p>
+        <a href="/standalone-no-external.html" class="button">Open</a>
+      </div>
+      
+      <div class="app-card">
+        <h3>API Test</h3>
+        <p>Direct API testing tool</p>
+        <a href="/api-test.html" class="button">Open</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>System Information</h2>
+    <div id="system-info"></div>
+  </div>
+  
+  <script>
+    // DOM Elements
+    const mainAppLogEl = document.getElementById('main-app-log');
+    const clearCacheBtn = document.getElementById('clear-cache-btn');
+    const systemInfoEl = document.getElementById('system-info');
+    
+    // Log function
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      mainAppLogEl.appendChild(entry);
+      mainAppLogEl.scrollTop = mainAppLogEl.scrollHeight;
+    }
+    
+    // Clear cache and reload
+    clearCacheBtn.addEventListener('click', async () => {
+      log('Clearing cache...');
+      
+      try {
+        // Clear application cache
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          log('Application cache cleared', 'success');
+        } else {
+          log('Cache API not supported in this browser', 'error');
+        }
+        
+        // Clear localStorage
+        localStorage.clear();
+        log('Local storage cleared', 'success');
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        log('Session storage cleared', 'success');
+        
+        // Clear cookies
+        document.cookie.split(';').forEach(cookie => {
+          const [name] = cookie.trim().split('=');
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+        });
+        log('Cookies cleared', 'success');
+        
+        // Reload the page
+        log('Reloading page in 2 seconds...');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+        
+      } catch (error) {
+        log(`Error clearing cache: ${error.message}`, 'error');
+      }
+    });
+    
+    // Display system information
+    function displaySystemInfo() {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookiesEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        dateTime: new Date().toLocaleString()
+      };
+      
+      let html = '';
+      for (const [key, value] of Object.entries(info)) {
+        html += `<div><strong>${key}:</strong> ${value}</div>`;
+      }
+      
+      systemInfoEl.innerHTML = html;
+    }
+    
+    // Initialize
+    displaySystemInfo();
+    log('App launcher loaded');
+    
+    // Check if the main app is accessible
+    fetch('/')
+      .then(response => {
+        if (response.ok) {
+          log(`Main app is accessible (${response.status} ${response.statusText})`, 'success');
+        } else {
+          log(`Main app returned status: ${response.status} ${response.statusText}`, 'error');
+        }
+      })
+      .catch(error => {
+        log(`Error accessing main app: ${error.message}`, 'error');
+      });
+    
+    // Check if the API is accessible
+    fetch('http://localhost:8000/api/historical/summary')
+      .then(response => {
+        if (response.ok) {
+          log(`API is accessible (${response.status} ${response.statusText})`, 'success');
+          return response.json();
+        } else {
+          log(`API returned status: ${response.status} ${response.statusText}`, 'error');
+          throw new Error(`API error: ${response.status}`);
+        }
+      })
+      .then(data => {
+        log(`API data received: ${JSON.stringify(data).substring(0, 100)}...`, 'success');
+      })
+      .catch(error => {
+        log(`Error accessing API: ${error.message}`, 'error');
+      });
+  </script>
+</body>
+</html> 

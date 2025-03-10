@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error Logger</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .error-log {
+      background-color: #fff0f0;
+      border: 1px solid #ffcccc;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .error-item {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ffcccc;
+    }
+    .error-message {
+      color: #cc0000;
+      font-weight: bold;
+    }
+    .error-stack {
+      font-family: monospace;
+      white-space: pre-wrap;
+      margin-top: 5px;
+      font-size: 12px;
+    }
+    .error-time {
+      color: #666;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Error Logger</h1>
+  <p>This page loads the main application script and logs any errors that occur.</p>
+  
+  <div id="error-log" class="error-log">
+    <div>Waiting for errors...</div>
+  </div>
+  
+  <div id="root"></div>
+  
+  <script>
+    // Create error log
+    const errorLog = document.getElementById('error-log');
+    const errors = [];
+    
+    // Override console.error
+    const originalConsoleError = console.error;
+    console.error = function() {
+      // Call the original console.error
+      originalConsoleError.apply(console, arguments);
+      
+      // Log the error
+      const errorMessage = Array.from(arguments).map(arg => {
+        if (arg instanceof Error) {
+          return arg.message;
+        } else if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg);
+          } catch (e) {
+            return String(arg);
+          }
+        } else {
+          return String(arg);
+        }
+      }).join(' ');
+      
+      const error = {
+        message: errorMessage,
+        stack: new Error().stack,
+        time: new Date().toISOString()
+      };
+      
+      errors.push(error);
+      updateErrorLog();
+    };
+    
+    // Catch global errors
+    window.addEventListener('error', function(event) {
+      const error = {
+        message: event.message,
+        stack: event.error ? event.error.stack : '',
+        time: new Date().toISOString()
+      };
+      
+      errors.push(error);
+      updateErrorLog();
+      
+      // Prevent the error from being reported to the console
+      event.preventDefault();
+    });
+    
+    // Catch unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+      const error = {
+        message: event.reason ? (event.reason.message || String(event.reason)) : 'Unhandled Promise Rejection',
+        stack: event.reason && event.reason.stack ? event.reason.stack : '',
+        time: new Date().toISOString()
+      };
+      
+      errors.push(error);
+      updateErrorLog();
+    });
+    
+    // Update error log
+    function updateErrorLog() {
+      if (errors.length === 0) {
+        errorLog.innerHTML = '<div>No errors yet...</div>';
+        return;
+      }
+      
+      errorLog.innerHTML = errors.map((error, index) => `
+        <div class="error-item">
+          <div class="error-time">${error.time}</div>
+          <div class="error-message">${error.message}</div>
+          <div class="error-stack">${error.stack}</div>
+        </div>
+      `).join('');
+    }
+  </script>
+  
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html> 

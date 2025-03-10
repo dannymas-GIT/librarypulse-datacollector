@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Main Application</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #f5f7fa;
+    }
+    h1 {
+      color: #1e3a8a;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 10px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .button:hover {
+      background-color: #2563eb;
+    }
+    .log {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #f8fafc;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin-bottom: 4px;
+      padding: 4px;
+      border-radius: 2px;
+    }
+    .log-entry.error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .log-entry.success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .log-entry.info {
+      background-color: #e0f2fe;
+      color: #0369a1;
+    }
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Main Application</h1>
+  
+  <div class="card">
+    <h2>Main Application</h2>
+    <p>Click the button below to load the main application in an iframe:</p>
+    
+    <button id="loadMainBtn" class="button">Load Main App</button>
+    <button id="clearLogBtn" class="button">Clear Log</button>
+    
+    <div id="log" class="log"></div>
+  </div>
+  
+  <div id="iframe-container" style="display: none;">
+    <iframe id="app-iframe" src="about:blank"></iframe>
+  </div>
+  
+  <script>
+    // DOM Elements
+    const logEl = document.getElementById('log');
+    const iframeContainer = document.getElementById('iframe-container');
+    const iframe = document.getElementById('app-iframe');
+    
+    // Log function
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    
+    // Load main app
+    document.getElementById('loadMainBtn').addEventListener('click', () => {
+      log('Loading main app in iframe...');
+      iframeContainer.style.display = 'block';
+      iframe.src = '/';
+      
+      // Listen for load event
+      iframe.onload = () => {
+        log('Main app loaded in iframe', 'success');
+        
+        try {
+          // Try to access iframe content
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const rootEl = iframeDoc.getElementById('root');
+          
+          if (rootEl && rootEl.children && rootEl.children.length > 0) {
+            log('Root element has content', 'success');
+          } else {
+            log('Root element is empty', 'error');
+          }
+        } catch (e) {
+          log(`Error accessing iframe content: ${e.message}`, 'error');
+        }
+      };
+      
+      // Listen for error event
+      iframe.onerror = (error) => {
+        log(`Error loading main app: ${error}`, 'error');
+      };
+    });
+    
+    // Clear log
+    document.getElementById('clearLogBtn').addEventListener('click', () => {
+      logEl.innerHTML = '';
+    });
+    
+    // Initialize
+    log('Test page loaded');
+    
+    // Check if the main app is accessible
+    fetch('/')
+      .then(response => {
+        if (response.ok) {
+          log(`Main app is accessible (${response.status} ${response.statusText})`, 'success');
+        } else {
+          log(`Main app returned status: ${response.status} ${response.statusText}`, 'error');
+        }
+      })
+      .catch(error => {
+        log(`Error accessing main app: ${error.message}`, 'error');
+      });
+    
+    // Check if the API is accessible
+    fetch('http://localhost:8000/api/historical/summary')
+      .then(response => {
+        if (response.ok) {
+          log(`API is accessible (${response.status} ${response.statusText})`, 'success');
+          return response.json();
+        } else {
+          log(`API returned status: ${response.status} ${response.statusText}`, 'error');
+          throw new Error(`API error: ${response.status}`);
+        }
+      })
+      .then(data => {
+        log(`API data received: ${JSON.stringify(data).substring(0, 100)}...`, 'success');
+      })
+      .catch(error => {
+        log(`Error accessing API: ${error.message}`, 'error');
+      });
+  </script>
+</body>
+</html> 

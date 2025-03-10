@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Direct Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #3a80d2;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>API Direct Test</h1>
+  <p>This page tests direct API access to the historical data endpoints.</p>
+  
+  <div>
+    <button id="testYears">Test Years Endpoint</button>
+    <button id="testSummary">Test Summary Endpoint</button>
+    <button id="testTrends">Test Trends Endpoint</button>
+  </div>
+  
+  <h2>Results:</h2>
+  <pre id="results">Click a button to test an endpoint...</pre>
+  
+  <script>
+    const API_URL = 'http://localhost:8000/api/historical';
+    
+    document.getElementById('testYears').addEventListener('click', async () => {
+      const resultsElement = document.getElementById('results');
+      resultsElement.textContent = 'Loading...';
+      
+      try {
+        console.log('Fetching years from:', `${API_URL}/years`);
+        const response = await fetch(`${API_URL}/years`);
+        console.log('Years response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Years data:', data);
+        
+        resultsElement.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        console.error('Error fetching years:', error);
+        resultsElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+      }
+    });
+    
+    document.getElementById('testSummary').addEventListener('click', async () => {
+      const resultsElement = document.getElementById('results');
+      resultsElement.textContent = 'Loading...';
+      
+      try {
+        console.log('Fetching summary from:', `${API_URL}/summary`);
+        const response = await fetch(`${API_URL}/summary`);
+        console.log('Summary response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Summary data:', data);
+        
+        resultsElement.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        console.error('Error fetching summary:', error);
+        resultsElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+      }
+    });
+    
+    document.getElementById('testTrends').addEventListener('click', async () => {
+      const resultsElement = document.getElementById('results');
+      resultsElement.textContent = 'Loading...';
+      
+      try {
+        const metrics = ['total_circulation', 'electronic_circulation', 'visits'];
+        const params = new URLSearchParams();
+        metrics.forEach(metric => params.append('metrics', metric));
+        
+        const url = `${API_URL}/trends?${params.toString()}`;
+        console.log('Fetching trends from:', url);
+        
+        const response = await fetch(url);
+        console.log('Trends response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Trends data:', data);
+        
+        resultsElement.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        console.error('Error fetching trends:', error);
+        resultsElement.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+      }
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    button { background: blue; color: white; padding: 10px; border: none; cursor: pointer; }
+    pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>API Test</h1>
+  <button id="testBtn">Test API</button>
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('result');
+      resultDiv.textContent = 'Loading...';
+      
+      try {
+        const response = await fetch('http://localhost:8000/api/historical/summary');
+        const data = await response.json();
+        
+        resultDiv.innerHTML = `
+          <h3>Success!</h3>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <h3>Error: ${error.message}</h3>
+          <p>Make sure the API server is running on port 8000</p>
+        `;
+      }
+    });
+  </script>
+</body>
+</html> 

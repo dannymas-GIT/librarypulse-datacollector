@@ -1,352 +1,224 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  BarChart3,
-  BookOpen,
-  Users,
-  Clock,
-  Calendar,
-  DollarSign,
-  Layers,
-  Globe,
-  FileBox,
-  Loader2,
-  AlertCircle,
+import { 
+  BarChart3, 
+  Users, 
+  BookOpen, 
+  Calendar, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus,
+  Library,
+  Clock
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Card } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { statsService } from '@/services/statsService';
+import { libraryService } from '@/services/libraryService';
 
-import { libraryConfigService } from '../services/libraryConfigService';
-import { API_BASE_URL } from '../config';
-
-interface StatCard {
-  title: string;
-  value: string | number;
-  change: string;
-  icon: React.ReactNode;
-  isPositive: boolean;
-  isNegative?: boolean;
-}
-
-interface LibraryStats {
+// Define types
+interface KPI {
   name: string;
-  city: string;
-  state: string;
-  recent_data: {
-    year: number;
-    visits: number;
-    circulation: {
-      total: number;
-      electronic: number;
-      physical: number;
-    };
-    collections: {
-      print: number;
-      electronic: number;
-      audio: number;
-      video: number;
-    };
-    programs: {
-      total: number;
-      attendance: number;
-    };
-    revenue: number;
-    expenditures: number;
-    staff: number;
-  };
-  trends: {
-    visits: Array<{ year: number; value: number }>;
-    circulation: Array<{ year: number; value: number }>;
-    programs: Array<{ year: number; value: number }>;
-    revenue: Array<{ year: number; value: number }>;
+  value: number;
+  previous_value?: number;
+  change_percent?: number;
+  trend?: string;
+  unit?: string;
+}
+
+interface DashboardSummary {
+  library_id: string;
+  library_name: string;
+  year: number;
+  kpis: KPI[];
+}
+
+interface Library {
+  id: string;
+  name: string;
+  location?: {
+    city?: string;
+    state?: string;
   };
 }
 
-const StatCard = ({ title, value, icon, description, color }: {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  description?: string;
-  color: string;
-}) => (
-  <div className="bg-white rounded-lg shadow p-6">
-    <div className="flex items-center">
-      <div className={`p-3 rounded-full ${color} text-white mr-4`}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className="text-2xl font-semibold">{value}</p>
-        {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
-      </div>
-    </div>
-  </div>
-);
+// Helper function to format numbers
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  } else {
+    return num.toString();
+  }
+};
 
-const Dashboard: React.FC = () => {
-  const [libraryStats, setLibraryStats] = useState<LibraryStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Get the library configuration
-  const {
-    data: config,
-    isLoading: configLoading,
-    error: configError
-  } = useQuery({
-    queryKey: ['libraryConfig'],
-    queryFn: () => libraryConfigService.getConfig(),
-  });
-
-  // Get the library statistics (using the library_id from config)
-  const {
-    data: stats,
-    isLoading: statsLoading,
-    error: statsError
-  } = useQuery({
-    queryKey: ['libraryStats', config?.library_id],
-    queryFn: async () => {
-      if (!config?.library_id) return null;
-      const response = await fetch(`${API_BASE_URL}/stats/library/${config.library_id}/dashboard`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch library statistics');
-      }
-      return response.json();
-    },
-    enabled: !!config?.library_id,
-  });
-
-  useEffect(() => {
-    if (stats) {
-      setLibraryStats(stats);
+// Component for displaying a stat card
+const StatCard: React.FC<{ kpi: any }> = ({ kpi }) => {
+  // Determine icon based on metric name
+  const getIcon = () => {
+    switch (kpi.name) {
+      case 'Total Circulation':
+        return <BookOpen className="h-8 w-8 text-blue-500" />;
+      case 'Visits':
+        return <Users className="h-8 w-8 text-green-500" />;
+      case 'Total Programs':
+        return <Calendar className="h-8 w-8 text-purple-500" />;
+      case 'Program Attendance':
+        return <Users className="h-8 w-8 text-orange-500" />;
+      case 'Reference Transactions':
+        return <BarChart3 className="h-8 w-8 text-indigo-500" />;
+      default:
+        return <Library className="h-8 w-8 text-gray-500" />;
     }
-    
-    if (statsError) {
-      setError('Failed to load library statistics');
-    } else if (configError) {
-      setError('Failed to load library configuration');
-    }
-  }, [stats, statsError, configError]);
-
-  // Generate statistic cards
-  const generateStatCards = (): StatCard[] => {
-    if (!libraryStats) return [];
-
-    return [
-      {
-        title: 'Total Visits',
-        value: libraryStats.recent_data.visits.toLocaleString(),
-        change: '+5.2%',
-        icon: <Users className="w-8 h-8 text-blue-500" />,
-        isPositive: true,
-      },
-      {
-        title: 'Total Circulation',
-        value: libraryStats.recent_data.circulation.total.toLocaleString(),
-        change: '+3.8%',
-        icon: <BookOpen className="w-8 h-8 text-emerald-500" />,
-        isPositive: true,
-      },
-      {
-        title: 'Electronic Circulation',
-        value: libraryStats.recent_data.circulation.electronic.toLocaleString(),
-        change: '+12.5%',
-        icon: <Globe className="w-8 h-8 text-purple-500" />,
-        isPositive: true,
-      },
-      {
-        title: 'Programs Held',
-        value: libraryStats.recent_data.programs.total.toLocaleString(),
-        change: '+7.3%',
-        icon: <Calendar className="w-8 h-8 text-indigo-500" />,
-        isPositive: true,
-      },
-      {
-        title: 'Program Attendance',
-        value: libraryStats.recent_data.programs.attendance.toLocaleString(),
-        change: '+8.1%',
-        icon: <Users className="w-8 h-8 text-rose-500" />,
-        isPositive: true,
-      },
-      {
-        title: 'Operating Revenue',
-        value: `$${(libraryStats.recent_data.revenue / 1000).toLocaleString()}K`,
-        change: '+2.4%',
-        icon: <DollarSign className="w-8 h-8 text-green-500" />,
-        isPositive: true,
-      },
-      {
-        title: 'Operating Expenditures',
-        value: `$${(libraryStats.recent_data.expenditures / 1000).toLocaleString()}K`,
-        change: '+3.1%',
-        icon: <DollarSign className="w-8 h-8 text-amber-500" />,
-        isPositive: true,
-      },
-      {
-        title: 'Staff (FTE)',
-        value: libraryStats.recent_data.staff.toLocaleString(),
-        change: '-1.2%',
-        icon: <Users className="w-8 h-8 text-cyan-500" />,
-        isPositive: false,
-        isNegative: true,
-      },
-    ];
   };
 
-  if (configLoading || statsLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-6rem)]">
-        <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-        <h2 className="text-lg font-medium text-gray-600">Loading library data...</h2>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-6rem)]">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h2 className="text-lg font-medium text-gray-800">{error}</h2>
-        <p className="text-gray-600 mt-2">
-          Please check your configuration or try again later.
-        </p>
-      </div>
-    );
-  }
-
-  if (!config || !libraryStats) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-6rem)]">
-        <FileBox className="w-12 h-12 text-amber-500 mb-4" />
-        <h2 className="text-lg font-medium text-gray-800">No library data available</h2>
-        <p className="text-gray-600 mt-2">
-          Please complete the setup wizard to configure your library.
-        </p>
-      </div>
-    );
-  }
-
-  const statCards = generateStatCards();
+  // Determine trend icon and color
+  const getTrendIcon = () => {
+    if (!kpi.trend || !kpi.change_percent) return null;
+    
+    if (kpi.trend === 'up') {
+      return <TrendingUp className="h-4 w-4 text-green-500" />;
+    } else if (kpi.trend === 'down') {
+      return <TrendingDown className="h-4 w-4 text-red-500" />;
+    } else {
+      return <Minus className="h-4 w-4 text-gray-500" />;
+    }
+  };
 
   return (
+    <Card className="p-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-medium text-gray-500">{kpi.name}</h3>
+          <div className="mt-2 flex items-baseline">
+            <p className="text-3xl font-semibold">{formatNumber(kpi.value)}</p>
+            {kpi.unit && <span className="ml-1 text-sm text-gray-500">{kpi.unit}</span>}
+          </div>
+        </div>
+        <div className="p-3 bg-blue-50 rounded-full">
+          {getIcon()}
+        </div>
+      </div>
+      {kpi.change_percent !== undefined && (
+        <div className="mt-4 flex items-center text-sm">
+          {getTrendIcon()}
+          <span className={`ml-1 ${kpi.trend === 'up' ? 'text-green-600' : kpi.trend === 'down' ? 'text-red-600' : 'text-gray-600'}`}>
+            {Math.abs(kpi.change_percent).toFixed(1)}% {kpi.trend === 'up' ? 'increase' : kpi.trend === 'down' ? 'decrease' : 'no change'}
+          </span>
+          <span className="ml-1 text-gray-500">from previous year</span>
+        </div>
+      )}
+    </Card>
+  );
+};
+
+const Dashboard: React.FC = () => {
+  // State for selected library and year
+  const [selectedLibrary, setSelectedLibrary] = useState<string>("NY0773"); // Default to West Babylon
+  const [selectedYear, setSelectedYear] = useState<number>(2006); // Default year
+  
+  // Available years
+  const years = Array.from({ length: 2022 - 2000 + 1 }, (_, i) => 2022 - i);
+  
+  // Fetch libraries
+  const { data: libraries, isLoading: librariesLoading, error: librariesError } = useQuery({
+    queryKey: ['libraries'],
+    queryFn: async () => {
+      const result = await libraryService.searchLibraries({ limit: 50 });
+      return result.libraries;
+    }
+  });
+  
+  // Fetch dashboard data
+  const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useQuery({
+    queryKey: ['dashboard', selectedLibrary, selectedYear],
+    queryFn: async () => {
+      return statsService.getDashboardSummary(selectedLibrary, selectedYear);
+    },
+    enabled: !!selectedLibrary
+  });
+  
+  // Handle loading states
+  if (librariesLoading || dashboardLoading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        <div className="flex justify-center items-center h-64">
+          <LoadingSpinner />
+        </div>
+      </div>
+    );
+  }
+  
+  // Handle error states
+  if (librariesError || dashboardError) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        <ErrorMessage message="Failed to load dashboard data. Please try again later." />
+      </div>
+    );
+  }
+  
+  return (
     <div className="p-6">
-      {/* Library Header */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">{libraryStats.name}</h1>
-        <p className="text-gray-600">
-          {libraryStats.city}, {libraryStats.state} | Data for FY {libraryStats.recent_data.year}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-4">
-          <div className="flex items-center">
-            <Clock className="w-5 h-5 text-blue-500 mr-2" />
-            <span>Most Recent Data: FY {libraryStats.recent_data.year}</span>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <h1 className="text-2xl font-bold mb-4 md:mb-0">Dashboard</h1>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Library selector */}
+          <div className="w-full sm:w-64">
+            <Select
+              label="Library"
+              value={selectedLibrary}
+              onChange={(e) => setSelectedLibrary(e.target.value)}
+              options={libraries?.map(lib => ({
+                value: lib.id,
+                label: lib.name
+              })) || []}
+            />
           </div>
-          <div className="flex items-center">
-            <Layers className="w-5 h-5 text-emerald-500 mr-2" />
-            <span>Data Years Available: {libraryStats.trends.visits.length}</span>
+          
+          {/* Year selector */}
+          <div className="w-full sm:w-40">
+            <Select
+              label="Year"
+              value={selectedYear.toString()}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              options={years.map(year => ({
+                value: year.toString(),
+                label: year.toString()
+              }))}
+            />
           </div>
         </div>
       </div>
-
-      {/* Stat Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        {statCards.map((stat, index) => (
-          <div key={index} className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between items-start">
+      
+      {dashboardData && (
+        <>
+          <div className="mb-6">
+            <div className="bg-white rounded-lg shadow p-4 flex items-center">
+              <Library className="h-6 w-6 text-blue-500 mr-3" />
               <div>
-                <h3 className="text-gray-500 font-medium">{stat.title}</h3>
-                <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                <h2 className="text-xl font-semibold">{dashboardData.library_name}</h2>
+                <p className="text-gray-500 text-sm flex items-center">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Data for year {dashboardData.year}
+                </p>
               </div>
-              <div className="p-2 rounded-md bg-gray-50">{stat.icon}</div>
-            </div>
-            <div className="mt-2">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  stat.isPositive
-                    ? 'bg-green-100 text-green-800'
-                    : stat.isNegative
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}
-              >
-                {stat.change}
-              </span>
-              <span className="text-gray-500 text-xs ml-1">from previous year</span>
             </div>
           </div>
-        ))}
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <Users className="w-5 h-5 text-blue-500 mr-2" />
-            Yearly Visits
-          </h2>
-          <div className="h-80 flex items-center justify-center bg-gray-50 rounded-md">
-            <BarChart3 className="w-16 h-16 text-gray-300" />
-            <span className="ml-2 text-gray-500">Visit trend chart goes here</span>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {dashboardData.kpis.map((kpi, index) => (
+              <StatCard key={index} kpi={kpi} />
+            ))}
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <BookOpen className="w-5 h-5 text-emerald-500 mr-2" />
-            Circulation Trends
-          </h2>
-          <div className="h-80 flex items-center justify-center bg-gray-50 rounded-md">
-            <BarChart3 className="w-16 h-16 text-gray-300" />
-            <span className="ml-2 text-gray-500">Circulation trend chart goes here</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link
-              to="/libraries"
-              className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Library className="h-5 w-5 text-primary-600 mr-3" />
-              <span>Browse Libraries</span>
-            </Link>
-            <Link
-              to="/trends"
-              className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <TrendingUp className="h-5 w-5 text-primary-600 mr-3" />
-              <span>View Trends</span>
-            </Link>
-            <Link
-              to="/statistics"
-              className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <BarChart3 className="h-5 w-5 text-primary-600 mr-3" />
-              <span>Statistics</span>
-            </Link>
-            <Link
-              to="/data-management"
-              className="flex items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <BookOpen className="h-5 w-5 text-primary-600 mr-3" />
-              <span>Data Management</span>
-            </Link>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">About Library Pulse</h2>
-          <p className="text-gray-600 mb-4">
-            Library Pulse provides analytics and insights based on the Public Libraries Survey (PLS) 
-            data collected annually by the Institute of Museum and Library Services (IMLS).
-          </p>
-          <p className="text-gray-600">
-            Use this tool to explore library statistics, compare libraries, analyze trends, 
-            and make data-driven decisions for your library.
-          </p>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };

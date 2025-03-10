@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    button {
+      background-color: #4299e1;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    button:hover {
+      background-color: #3182ce;
+    }
+    pre {
+      background-color: #f7fafc;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+    }
+    .success {
+      background-color: #c6f6d5;
+      border: 1px solid #9ae6b4;
+      color: #22543d;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .error {
+      background-color: #fed7d7;
+      border: 1px solid #feb2b2;
+      color: #822727;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Direct API Connection Test</h1>
+  <p>This page tests direct connection to the historical data API without React or TypeScript.</p>
+  
+  <div>
+    <button id="testSummaryBtn">Test Summary Endpoint</button>
+    <button id="testTrendsBtn">Test Trends Endpoint</button>
+  </div>
+  
+  <div id="result"></div>
+  
+  <script>
+    document.getElementById('testSummaryBtn').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p>Loading...</p>';
+      
+      try {
+        console.log('Testing summary endpoint...');
+        const response = await fetch('http://localhost:8000/api/historical/summary', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Response:', data);
+        
+        resultDiv.innerHTML = `
+          <div class="success">
+            <h3>✅ API Connection Successful!</h3>
+            <p>Successfully connected to the summary endpoint.</p>
+          </div>
+          <h3>Response Data:</h3>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('Error:', error);
+        resultDiv.innerHTML = `
+          <div class="error">
+            <h3>❌ API Connection Failed</h3>
+            <p>Error: ${error.message}</p>
+          </div>
+          <h3>Troubleshooting:</h3>
+          <ol>
+            <li>Make sure the backend API server is running: <code>cd backend && python -m api.main</code></li>
+            <li>Check that the server is accessible at <a href="http://localhost:8000/api/historical/summary" target="_blank">http://localhost:8000/api/historical/summary</a></li>
+            <li>Look for CORS errors in the browser console (F12)</li>
+            <li>Check network connectivity and firewall settings</li>
+          </ol>
+        `;
+      }
+    });
+    
+    document.getElementById('testTrendsBtn').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p>Loading...</p>';
+      
+      try {
+        console.log('Testing trends endpoint...');
+        const metrics = ['total_circulation', 'visits'];
+        const metricsParams = metrics.map(m => `metrics=${encodeURIComponent(m)}`).join('&');
+        
+        const response = await fetch(`http://localhost:8000/api/historical/trends?${metricsParams}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Response:', data);
+        
+        resultDiv.innerHTML = `
+          <div class="success">
+            <h3>✅ API Connection Successful!</h3>
+            <p>Successfully connected to the trends endpoint.</p>
+          </div>
+          <h3>Response Data (first part):</h3>
+          <pre>${JSON.stringify(data, null, 2).substring(0, 1000)}...</pre>
+        `;
+      } catch (error) {
+        console.error('Error:', error);
+        resultDiv.innerHTML = `
+          <div class="error">
+            <h3>❌ API Connection Failed</h3>
+            <p>Error: ${error.message}</p>
+          </div>
+          <h3>Troubleshooting:</h3>
+          <ol>
+            <li>Make sure the backend API server is running: <code>cd backend && python -m api.main</code></li>
+            <li>Try testing the API directly with curl: <code>curl "http://localhost:8000/api/historical/trends?metrics=total_circulation&metrics=visits"</code></li>
+            <li>Look for CORS errors in the browser console (F12)</li>
+            <li>Check network connectivity and firewall settings</li>
+          </ol>
+        `;
+      }
+    });
+  </script>
+</body>
+</html> 

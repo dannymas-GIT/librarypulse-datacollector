@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Pulse - Diagnostics</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background-color: #f9f9f9;
+    }
+    .card h2 {
+      margin-top: 0;
+      color: #4a90e2;
+    }
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .link-button {
+      display: inline-block;
+      padding: 10px 16px;
+      background-color: #4a90e2;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    .link-button:hover {
+      background-color: #3a80d2;
+    }
+    .description {
+      color: #666;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Library Pulse - Diagnostics</h1>
+  
+  <div class="card">
+    <h2>Application Status</h2>
+    <p class="description">The main application is experiencing issues. Please use the diagnostic tools below to help identify the problem.</p>
+    
+    <div class="links">
+      <a href="/entry.html" class="link-button">Try Direct Entry Point</a>
+      <a href="/standalone.html" class="link-button">Standalone Historical Trends</a>
+      <a href="/direct-test.html" class="link-button">Direct API Test</a>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>Diagnostic Tools</h2>
+    <p class="description">Use these tools to diagnose connectivity and application issues:</p>
+    
+    <div class="links">
+      <a href="/debug.html" class="link-button">Basic Debug Page</a>
+      <a href="/network-test.html" class="link-button">Network Connectivity Test</a>
+      <a href="/error-logger.html" class="link-button">JavaScript Error Logger</a>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>Next Steps</h2>
+    <p>If you're experiencing issues with the main application:</p>
+    <ol>
+      <li>Try the standalone version which connects directly to the API</li>
+      <li>Use the diagnostic tools to identify any network or JavaScript errors</li>
+      <li>Check if the API is accessible using the Direct API Test</li>
+      <li>Try clearing your browser cache or using a different browser</li>
+    </ol>
+  </div>
+</body>
+</html> 

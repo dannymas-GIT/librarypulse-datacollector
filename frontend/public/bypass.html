@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Pulse - No Dependencies</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 15px 0;
+      margin-bottom: 30px;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    select, input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    .chart-container {
+      height: 400px;
+      margin-bottom: 30px;
+    }
+    .metrics-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .metric-card {
+      background-color: #f8fafc;
+      border-radius: 6px;
+      padding: 15px;
+      border: 1px solid #e2e8f0;
+    }
+    .metric-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .metric-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .metric-change {
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+    }
+    .positive {
+      color: #10b981;
+    }
+    .negative {
+      color: #ef4444;
+    }
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 300px;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #3b82f6;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    .notification {
+      background-color: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>Library Pulse - Historical Trends</h1>
+      <div>West Babylon Public Library</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="notification">
+      This is a standalone version of the Historical Trends page that bypasses any authentication requirements.
+    </div>
+
+    <div class="card">
+      <h2>Historical Data Visualization</h2>
+      
+      <div class="controls">
+        <div class="control-group">
+          <label for="chartType">Chart Type</label>
+          <select id="chartType">
+            <option value="line">Line Chart</option>
+            <option value="bar">Bar Chart</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label for="startYear">Start Year</label>
+          <input type="number" id="startYear" min="1988" max="2024" value="2000">
+        </div>
+        
+        <div class="control-group">
+          <label for="endYear">End Year</label>
+          <input type="number" id="endYear" min="1988" max="2024" value="2024">
+        </div>
+        
+        <div class="control-group" style="justify-content: flex-end;">
+          <button id="updateChart">Update Chart</button>
+        </div>
+      </div>
+      
+      <div id="error" class="error" style="display: none;"></div>
+      
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+      </div>
+      
+      <div id="chartContainer" class="chart-container" style="display: none;">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>Select Metrics</h2>
+      <div class="checkbox-group" id="metricsContainer">
+        <!-- Metrics checkboxes will be added here -->
+      </div>
+    </div>
+    
+    <div class="card" id="growthAnalysisContainer" style="display: none;">
+      <h2>Growth Analysis</h2>
+      <div class="metrics-container" id="growthMetrics">
+        <!-- Growth metrics will be added here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // API URL
+    const API_URL = 'http://localhost:8000/api/historical';
+    
+    // DOM elements
+    const chartTypeSelect = document.getElementById('chartType');
+    const startYearInput = document.getElementById('startYear');
+    const endYearInput = document.getElementById('endYear');
+    const updateChartButton = document.getElementById('updateChart');
+    const metricsContainer = document.getElementById('metricsContainer');
+    const loadingElement = document.getElementById('loading');
+    const errorElement = document.getElementById('error');
+    const chartContainer = document.getElementById('chartContainer');
+    const chartCanvas = document.getElementById('trendChart');
+    const growthAnalysisContainer = document.getElementById('growthAnalysisContainer');
+    const growthMetricsContainer = document.getElementById('growthMetrics');
+    
+    // Chart instance
+    let chart = null;
+    
+    // Available metrics with colors
+    const metrics = [
+      { value: 'total_circulation', label: 'Total Circulation', category: 'Circulation', color: '#4a90e2' },
+      { value: 'electronic_circulation', label: 'Electronic Circulation', category: 'Circulation', color: '#50c878' },
+      { value: 'physical_circulation', label: 'Physical Circulation', category: 'Circulation', color: '#f39c12' },
+      { value: 'visits', label: 'Visits', category: 'Usage', color: '#e74c3c' },
+      { value: 'reference_transactions', label: 'Reference Transactions', category: 'Usage', color: '#9b59b6' },
+      { value: 'registered_users', label: 'Registered Users', category: 'Users', color: '#3498db' },
+      { value: 'total_programs', label: 'Total Programs', category: 'Programs', color: '#2ecc71' },
+      { value: 'total_program_attendance', label: 'Program Attendance', category: 'Programs', color: '#e67e22' },
+      { value: 'total_staff', label: 'Total Staff', category: 'Staff', color: '#1abc9c' },
+      { value: 'librarian_staff', label: 'Librarian Staff', category: 'Staff', color: '#34495e' },
+      { value: 'total_operating_revenue', label: 'Total Revenue', category: 'Finance', color: '#16a085' },
+      { value: 'total_operating_expenditures', label: 'Total Expenditures', category: 'Finance', color: '#c0392b' }
+    ];
+    
+    // Group metrics by category
+    const groupedMetrics = metrics.reduce((acc, metric) => {
+      if (!acc[metric.category]) {
+        acc[metric.category] = [];
+      }
+      acc[metric.category].push(metric);
+      return acc;
+    }, {});
+    
+    // Initialize the page
+    async function init() {
+      // Create metric checkboxes grouped by category
+      Object.entries(groupedMetrics).forEach(([category, categoryMetrics]) => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.style.marginBottom = '15px';
+        
+        const categoryTitle = document.createElement('div');
+        categoryTitle.textContent = category;
+        categoryTitle.style.fontWeight = 'bold';
+        categoryTitle.style.marginBottom = '5px';
+        categoryDiv.appendChild(categoryTitle);
+        
+        categoryMetrics.forEach(metric => {
+          const checkboxItem = document.createElement('div');
+          checkboxItem.className = 'checkbox-item';
+          
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = metric.value;
+          checkbox.value = metric.value;
+          checkbox.checked = ['total_circulation', 'electronic_circulation', 'visits'].includes(metric.value);
+          
+          const label = document.createElement('label');
+          label.htmlFor = metric.value;
+          label.textContent = metric.label;
+          
+          const colorDot = document.createElement('span');
+          colorDot.className = 'color-dot';
+          colorDot.style.backgroundColor = metric.color;
+          colorDot.style.display = 'inline-block';
+          colorDot.style.width = '10px';
+          colorDot.style.height = '10px';
+          colorDot.style.borderRadius = '50%';
+          
+          checkboxItem.appendChild(checkbox);
+          checkboxItem.appendChild(label);
+          checkboxItem.appendChild(colorDot);
+          categoryDiv.appendChild(checkboxItem);
+        });
+        
+        metricsContainer.appendChild(categoryDiv);
+      });
+      
+      // Fetch available years
+      try {
+        const response = await fetch(`${API_URL}/years`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const years = await response.json();
+        if (years && years.length > 0) {
+          const minYear = Math.min(...years);
+          const maxYear = Math.max(...years);
+          startYearInput.value = minYear;
+          startYearInput.min = minYear;
+          startYearInput.max = maxYear;
+          endYearInput.value = maxYear;
+          endYearInput.min = minYear;
+          endYearInput.max = maxYear;
+        }
+      } catch (error) {
+        showError(`Error fetching years: ${error.message}`);
+      }
+      
+      // Add event listener to update button
+      updateChartButton.addEventListener('click', fetchData);
+      
+      // Initial data fetch
+      fetchData();
+    }
+    
+    // Fetch trend data
+    async function fetchData() {
+      // Show loading indicator
+      loadingElement.style.display = 'flex';
+      chartContainer.style.display = 'none';
+      errorElement.style.display = 'none';
+      growthAnalysisContainer.style.display = 'none';
+      
+      // Get selected metrics
+      const selectedMetrics = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(checkbox => checkbox.value);
+      
+      if (selectedMetrics.length === 0) {
+        showError('Please select at least one metric');
+        return;
+      }
+      
+      try {
+        // Construct the URL with query parameters
+        const params = new URLSearchParams();
+        selectedMetrics.forEach(metric => params.append('metrics', metric));
+        params.append('start_year', startYearInput.value);
+        params.append('end_year', endYearInput.value);
+        
+        const url = `${API_URL}/trends?${params.toString()}`;
+        console.log('Fetching trend data from:', url);
+        
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Trend data:', data);
+        
+        // Process and display the data
+        displayChart(data);
+        displayGrowthAnalysis(data);
+      } catch (error) {
+        showError(`Error fetching trend data: ${error.message}`);
+      }
+    }
+    
+    // Process and display chart
+    function displayChart(trendData) {
+      if (!trendData || trendData.length === 0) {
+        showError('No data available for the selected metrics');
+        return;
+      }
+      
+      // Hide loading indicator and show chart
+      loadingElement.style.display = 'none';
+      chartContainer.style.display = 'block';
+      
+      // Create datasets for Chart.js
+      const datasets = trendData.map(trend => {
+        const metric = metrics.find(m => m.value === trend.metric);
+        return {
+          label: metric ? metric.label : trend.metric,
+          data: trend.years.map((year, index) => ({
+            x: year,
+            y: trend.values[index]
+          })),
+          borderColor: metric ? metric.color : '#000000',
+          backgroundColor: metric ? `${metric.color}80` : '#00000080',
+          fill: chartTypeSelect.value === 'bar',
+          tension: 0.1
+        };
+      });
+      
+      // Destroy previous chart if it exists
+      if (chart) {
+        chart.destroy();
+      }
+      
+      // Create new chart
+      chart = new Chart(chartCanvas, {
+        type: chartTypeSelect.value,
+        data: {
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'linear',
+              title: {
+                display: true,
+                text: 'Year'
+              },
+              ticks: {
+                stepSize: 1
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Value'
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            },
+            legend: {
+              position: 'top'
+            },
+            title: {
+              display: true,
+              text: 'Historical Trends'
+            }
+          }
+        }
+      });
+    }
+    
+    // Display growth analysis
+    function displayGrowthAnalysis(trendData) {
+      // Clear previous growth metrics
+      growthMetricsContainer.innerHTML = '';
+      
+      // Check if there's growth data
+      const hasGrowthData = trendData.some(trend => trend.growth_rates);
+      
+      if (!hasGrowthData) {
+        growthAnalysisContainer.style.display = 'none';
+        return;
+      }
+      
+      // Show growth analysis container
+      growthAnalysisContainer.style.display = 'block';
+      
+      // Create growth metric cards
+      trendData.forEach(trend => {
+        if (!trend.growth_rates) return;
+        
+        const metric = metrics.find(m => m.value === trend.metric);
+        const metricName = metric ? metric.label : trend.metric;
+        const metricColor = metric ? metric.color : '#000000';
+        
+        const card = document.createElement('div');
+        card.className = 'metric-card';
+        
+        // Metric header
+        const header = document.createElement('div');
+        header.className = 'metric-header';
+        
+        const colorDot = document.createElement('div');
+        colorDot.className = 'color-dot';
+        colorDot.style.backgroundColor = metricColor;
+        
+        const title = document.createElement('div');
+        title.className = 'metric-title';
+        title.textContent = metricName;
+        
+        header.appendChild(colorDot);
+        header.appendChild(title);
+        card.appendChild(header);
+        
+        // Total growth
+        if (trend.growth_rates.total !== undefined) {
+          const totalGrowth = document.createElement('div');
+          totalGrowth.className = 'metric-value';
+          totalGrowth.textContent = `${trend.growth_rates.total.toFixed(2)}%`;
+          totalGrowth.style.color = trend.growth_rates.total >= 0 ? '#10b981' : '#ef4444';
+          
+          const totalLabel = document.createElement('div');
+          totalLabel.textContent = 'Total Growth';
+          totalLabel.style.fontSize = '12px';
+          totalLabel.style.color = '#64748b';
+          
+          card.appendChild(totalGrowth);
+          card.appendChild(totalLabel);
+        }
+        
+        // Average growth
+        if (trend.growth_rates.average !== undefined) {
+          const avgGrowth = document.createElement('div');
+          avgGrowth.style.marginTop = '10px';
+          avgGrowth.style.fontSize = '14px';
+          avgGrowth.innerHTML = `Avg. Annual: <span style="color: ${trend.growth_rates.average >= 0 ? '#10b981' : '#ef4444'}">${trend.growth_rates.average.toFixed(2)}%</span>`;
+          
+          card.appendChild(avgGrowth);
+        }
+        
+        // Significant years
+        if (trend.growth_rates.yearly && Object.keys(trend.growth_rates.yearly).length > 0) {
+          const significantYears = document.createElement('div');
+          significantYears.style.marginTop = '10px';
+          significantYears.style.fontSize = '12px';
+          
+          const yearsTitle = document.createElement('div');
+          yearsTitle.textContent = 'Significant Years:';
+          yearsTitle.style.fontWeight = '500';
+          yearsTitle.style.marginBottom = '5px';
+          
+          significantYears.appendChild(yearsTitle);
+          
+          // Get top 3 years by absolute growth rate
+          const sortedYears = Object.entries(trend.growth_rates.yearly)
+            .sort(([, a], [, b]) => Math.abs(Number(b)) - Math.abs(Number(a)))
+            .slice(0, 3);
+          
+          sortedYears.forEach(([year, rate]) => {
+            const yearItem = document.createElement('div');
+            yearItem.style.display = 'flex';
+            yearItem.style.justifyContent = 'space-between';
+            yearItem.style.marginBottom = '2px';
+            
+            const yearLabel = document.createElement('span');
+            yearLabel.textContent = year;
+            
+            const rateValue = document.createElement('span');
+            rateValue.textContent = `${Number(rate).toFixed(2)}%`;
+            rateValue.style.color = Number(rate) >= 0 ? '#10b981' : '#ef4444';
+            
+            yearItem.appendChild(yearLabel);
+            yearItem.appendChild(rateValue);
+            significantYears.appendChild(yearItem);
+          });
+          
+          card.appendChild(significantYears);
+        }
+        
+        growthMetricsContainer.appendChild(card);
+      });
+    }
+    
+    // Show error message
+    function showError(message) {
+      loadingElement.style.display = 'none';
+      chartContainer.style.display = 'none';
+      errorElement.style.display = 'block';
+      errorElement.textContent = message;
+    }
+    
+    // Initialize the page
+    init();
+  </script>
+</body>
+</html> 

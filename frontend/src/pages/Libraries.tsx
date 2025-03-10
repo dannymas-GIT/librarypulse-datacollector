@@ -1,116 +1,207 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Filter, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Search, Library as LibraryIcon, MapPin, Users, BookOpen, Calendar, Filter } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { libraryService, LibraryProfile, LibrarySearchResult } from '@/services/libraryService';
 
-// This is a placeholder - we'll implement the actual API service later
-const fetchLibraries = async () => {
-  // Simulate API call
-  return [
-    { library_id: 'CA0001', name: 'San Francisco Public Library', state: 'CA', city: 'San Francisco', visits: 5000000 },
-    { library_id: 'NY0001', name: 'New York Public Library', state: 'NY', city: 'New York', visits: 17000000 },
-    { library_id: 'IL0001', name: 'Chicago Public Library', state: 'IL', city: 'Chicago', visits: 9000000 },
-    { library_id: 'TX0001', name: 'Houston Public Library', state: 'TX', city: 'Houston', visits: 7000000 },
-    { library_id: 'WA0001', name: 'Seattle Public Library', state: 'WA', city: 'Seattle', visits: 4000000 },
-  ];
-};
+// Define types
+interface LibraryLocation {
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  latitude?: number;
+  longitude?: number;
+}
 
-const Libraries = () => {
+interface LibraryContact {
+  phone?: string;
+  email?: string;
+  website?: string;
+}
+
+interface LibraryProfile {
+  id: string;
+  name: string;
+  location?: LibraryLocation;
+  contact?: LibraryContact;
+  service_area?: string;
+  population_served?: number;
+  region?: string;
+  available_years: number[];
+}
+
+interface LibrarySearchResult {
+  total: number;
+  libraries: LibraryProfile[];
+}
+
+const Libraries: React.FC = () => {
+  // State for search and filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedState, setSelectedState] = useState('');
-
-  const { data: libraries = [], isLoading, error } = useQuery({
-    queryKey: ['libraries'],
-    queryFn: fetchLibraries,
+  const [selectedRegion, setSelectedRegion] = useState('');
+  
+  // Fetch libraries
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['libraries', searchQuery, selectedRegion],
+    queryFn: async () => {
+      return libraryService.searchLibraries({
+        query: searchQuery,
+        region: selectedRegion,
+        limit: 50
+      });
+    }
   });
-
-  const filteredLibraries = libraries.filter(library => {
-    const matchesSearch = library.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesState = selectedState ? library.state === selectedState : true;
-    return matchesSearch && matchesState;
-  });
-
-  const states = [...new Set(libraries.map(library => library.state))].sort();
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Libraries</h1>
-
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-5 w-5 text-gray-400" />
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full rounded-md border-0 py-2 pl-10 pr-4 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm"
-                placeholder="Search libraries..."
-              />
-            </div>
-          </div>
-          <div className="w-full md:w-64">
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Filter className="h-5 w-5 text-gray-400" />
-              </span>
-              <select
-                value={selectedState}
-                onChange={(e) => setSelectedState(e.target.value)}
-                className="block w-full rounded-md border-0 py-2 pl-10 pr-4 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm"
-              >
-                <option value="">All States</option>
-                {states.map(state => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+  
+  // Get unique regions for filter
+  const regions = data?.libraries
+    ? Array.from(new Set(data.libraries.map((lib: LibraryProfile) => lib.region).filter(Boolean)))
+    : [];
+  
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // The search is handled by the useQuery hook
+  };
+  
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Libraries</h1>
+        <div className="flex justify-center items-center h-64">
+          <LoadingSpinner />
         </div>
       </div>
-
-      {isLoading ? (
-        <div className="animate-pulse space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
-          ))}
-        </div>
-      ) : error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <p>Error loading libraries. Please try again later.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredLibraries.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-6 text-center">
-              <p className="text-gray-500">No libraries found matching your criteria.</p>
+    );
+  }
+  
+  // Handle error state
+  if (error) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Libraries</h1>
+        <ErrorMessage message="Failed to load libraries. Please try again later." />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Libraries</h1>
+      
+      {/* Search and filters */}
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="col-span-1 md:col-span-2">
+            <Input
+              type="text"
+              placeholder="Search libraries by name or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              icon={<Search className="h-5 w-5 text-gray-400" />}
+            />
+          </div>
+          
+          <div>
+            <Select
+              label="Filter by Region"
+              value={selectedRegion}
+              onChange={(e) => setSelectedRegion(e.target.value)}
+              options={[
+                { value: '', label: 'All Regions' },
+                ...regions.map(region => ({ value: region || '', label: region || 'Unknown' }))
+              ]}
+              icon={<Filter className="h-5 w-5 text-gray-400" />}
+            />
+          </div>
+        </form>
+      </div>
+      
+      {/* Results count */}
+      <div className="mb-4">
+        <p className="text-gray-600">
+          Showing {data?.libraries.length || 0} of {data?.total || 0} libraries
+          {searchQuery && ` matching "${searchQuery}"`}
+          {selectedRegion && ` in ${selectedRegion}`}
+        </p>
+      </div>
+      
+      {/* Library cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {data?.libraries.map((library) => (
+          <Card key={library.id} className="p-0">
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-semibold flex items-center">
+                <LibraryIcon className="h-5 w-5 text-blue-500 mr-2" />
+                {library.name}
+              </h2>
+              {library.location && (
+                <p className="text-gray-600 flex items-center mt-1">
+                  <MapPin className="h-4 w-4 text-gray-400 mr-1" />
+                  {[
+                    library.location.city,
+                    library.location.state
+                  ].filter(Boolean).join(', ')}
+                </p>
+              )}
             </div>
-          ) : (
-            filteredLibraries.map(library => (
-              <Link
-                key={library.library_id}
-                to={`/libraries/${library.library_id}`}
-                className="block bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-lg font-semibold text-primary-700">{library.name}</h2>
-                    <div className="flex items-center text-gray-500 mt-1">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      <span>{library.city}, {library.state}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-500">Annual Visits</div>
-                    <div className="font-semibold">{library.visits.toLocaleString()}</div>
-                  </div>
+            
+            <div className="p-4">
+              {library.population_served && (
+                <div className="flex items-center mb-2">
+                  <Users className="h-4 w-4 text-gray-500 mr-2" />
+                  <span className="text-sm">
+                    Population Served: {library.population_served.toLocaleString()}
+                  </span>
                 </div>
+              )}
+              
+              {library.service_area && (
+                <div className="flex items-center mb-2">
+                  <MapPin className="h-4 w-4 text-gray-500 mr-2" />
+                  <span className="text-sm">
+                    Service Area: {library.service_area}
+                  </span>
+                </div>
+              )}
+              
+              {library.available_years && library.available_years.length > 0 && (
+                <div className="flex items-center mb-2">
+                  <Calendar className="h-4 w-4 text-gray-500 mr-2" />
+                  <span className="text-sm">
+                    Data Years: {Math.min(...library.available_years)} - {Math.max(...library.available_years)}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-gray-50 border-t">
+              <Link
+                to={`/libraries/${library.id}`}
+                className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
+              >
+                <BookOpen className="h-4 w-4 mr-1" />
+                View Details
               </Link>
-            ))
-          )}
+            </div>
+          </Card>
+        ))}
+      </div>
+      
+      {/* No results */}
+      {data?.libraries.length === 0 && (
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <LibraryIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No libraries found</h3>
+          <p className="text-gray-600">
+            Try adjusting your search or filters to find what you're looking for.
+          </p>
         </div>
       )}
     </div>

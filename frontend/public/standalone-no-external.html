@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Pulse - No External Dependencies</title>
+  <style>
+    /* Use system fonts instead of Google Fonts */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 15px 0;
+      margin-bottom: 30px;
+    }
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    select, input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 300px;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #3b82f6;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    .notification {
+      background-color: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>Library Pulse - Historical Data</h1>
+      <div>West Babylon Public Library</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="notification">
+      This is a completely standalone version with no external dependencies.
+    </div>
+
+    <div class="card">
+      <h2>Historical Data</h2>
+      
+      <div class="controls">
+        <button id="testYears">Get Available Years</button>
+        <button id="testSummary">Get Library Summary</button>
+        <button id="testTrends">Get Trends Data</button>
+      </div>
+      
+      <div id="error" class="error" style="display: none;"></div>
+      
+      <div id="loading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+      </div>
+      
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <script>
+    // API URL
+    const API_URL = 'http://localhost:8000/api/historical';
+    
+    // DOM elements
+    const errorElement = document.getElementById('error');
+    const loadingElement = document.getElementById('loading');
+    const resultElement = document.getElementById('result');
+    
+    // Show error message
+    function showError(message) {
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+      loadingElement.style.display = 'none';
+    }
+    
+    // Hide error message
+    function hideError() {
+      errorElement.style.display = 'none';
+    }
+    
+    // Show loading indicator
+    function showLoading() {
+      loadingElement.style.display = 'flex';
+      hideError();
+    }
+    
+    // Hide loading indicator
+    function hideLoading() {
+      loadingElement.style.display = 'none';
+    }
+    
+    // Test years endpoint
+    document.getElementById('testYears').addEventListener('click', async () => {
+      showLoading();
+      resultElement.innerHTML = '';
+      
+      try {
+        const response = await fetch(`${API_URL}/years`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        hideLoading();
+        
+        // Display years as a simple list
+        resultElement.innerHTML = `
+          <h2>Available Years</h2>
+          <p>Total years: ${data.length}</p>
+          <p>Range: ${Math.min(...data)} - ${Math.max(...data)}</p>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        showError(`Error: ${error.message}`);
+      }
+    });
+    
+    // Test summary endpoint
+    document.getElementById('testSummary').addEventListener('click', async () => {
+      showLoading();
+      resultElement.innerHTML = '';
+      
+      try {
+        const response = await fetch(`${API_URL}/summary`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        hideLoading();
+        
+        // Display summary data
+        resultElement.innerHTML = `
+          <h2>Library Summary</h2>
+          <p><strong>Library:</strong> ${data.name} (ID: ${data.library_id})</p>
+          <p><strong>Years:</strong> ${data.earliest_year} - ${data.latest_year} (${data.total_years} years)</p>
+          <h3>Available Metrics</h3>
+          <ul>
+            ${data.metrics_available.map(metric => `<li>${metric}</li>`).join('')}
+          </ul>
+        `;
+      } catch (error) {
+        showError(`Error: ${error.message}`);
+      }
+    });
+    
+    // Test trends endpoint
+    document.getElementById('testTrends').addEventListener('click', async () => {
+      showLoading();
+      resultElement.innerHTML = '';
+      
+      try {
+        // Use a few common metrics
+        const metrics = ['total_circulation', 'visits', 'registered_users'];
+        const params = new URLSearchParams();
+        metrics.forEach(metric => params.append('metrics', metric));
+        
+        const response = await fetch(`${API_URL}/trends?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        hideLoading();
+        
+        // Create HTML for each metric
+        let html = '<h2>Trends Data</h2>';
+        
+        data.forEach(trend => {
+          html += `<h3>${trend.metric}</h3>`;
+          
+          // Create a table for the data
+          html += '<table>';
+          html += '<tr><th>Year</th><th>Value</th></tr>';
+          
+          trend.years.forEach((year, index) => {
+            const value = trend.values[index] !== null ? trend.values[index] : 'N/A';
+            html += `<tr><td>${year}</td><td>${value}</td></tr>`;
+          });
+          
+          html += '</table>';
+          
+          // Add growth rates if available
+          if (trend.growth_rates) {
+            html += '<h4>Growth Rates</h4>';
+            html += '<ul>';
+            
+            if (trend.growth_rates.total !== undefined) {
+              html += `<li>Total Growth: ${trend.growth_rates.total.toFixed(2)}%</li>`;
+            }
+            
+            if (trend.growth_rates.average !== undefined) {
+              html += `<li>Average Annual Growth: ${trend.growth_rates.average.toFixed(2)}%</li>`;
+            }
+            
+            html += '</ul>';
+            
+            // Add yearly growth rates if available
+            if (trend.growth_rates.yearly && Object.keys(trend.growth_rates.yearly).length > 0) {
+              html += '<h4>Yearly Growth Rates</h4>';
+              html += '<table>';
+              html += '<tr><th>Year</th><th>Growth Rate</th></tr>';
+              
+              Object.entries(trend.growth_rates.yearly)
+                .sort(([yearA], [yearB]) => Number(yearA) - Number(yearB))
+                .forEach(([year, rate]) => {
+                  html += `<tr><td>${year}</td><td>${Number(rate).toFixed(2)}%</td></tr>`;
+                });
+              
+              html += '</table>';
+            }
+          }
+        });
+        
+        resultElement.innerHTML = html;
+      } catch (error) {
+        showError(`Error: ${error.message}`);
+      }
+    });
+  </script>
+</body>
+</html> 

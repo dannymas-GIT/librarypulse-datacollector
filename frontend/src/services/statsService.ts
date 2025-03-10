@@ -48,201 +48,116 @@ export interface StatisticCategory {
   id: string;
   name: string;
   description: string;
+  metrics: StatisticMetric[];
 }
 
 export interface StatisticMetric {
   id: string;
   name: string;
   description: string;
-  category: string;
   unit: string;
-  dataType: 'number' | 'percentage' | 'currency' | 'text';
 }
 
-export interface StatisticValue {
-  metric: string;
-  value: number | string;
-  year: number;
-}
-
-export interface LibraryStatistics {
-  libraryId: number;
-  libraryName: string;
-  fscsId: string;
-  year: number;
-  statistics: StatisticValue[];
-}
-
-export interface TrendPoint {
-  year: number;
-  value: number | string;
-}
-
-export interface TrendData {
-  metric: StatisticMetric;
-  data: TrendPoint[];
-}
-
-export interface ComparisonData {
-  metric: StatisticMetric;
-  libraries: {
-    id: number;
-    name: string;
-    value: number | string;
-  }[];
-}
-
-export interface StateAverage {
-  state: string;
-  metric: string;
+export interface KPI {
+  name: string;
   value: number;
-  year: number;
+  previous_value?: number;
+  change_percent?: number;
+  trend?: string;
+  unit?: string;
 }
 
-export interface NationalAverage {
-  metric: string;
-  value: number;
+export interface DashboardSummary {
+  library_id: string;
+  library_name: string;
   year: number;
+  kpis: KPI[];
 }
 
-// Updated API functions using the new api utility
-export const fetchSummaryStats = (year?: number, state?: string): Promise<SummaryStats> => {
-  const params: Record<string, any> = {};
-  if (year) params.year = year;
-  if (state) params.state = state;
-
-  return get<SummaryStats>('/stats/summary', params);
+// Stats service functions
+export const statsService = {
+  /**
+   * Get summary statistics for a specific year
+   */
+  getSummaryStats: async (year: number, state?: string): Promise<SummaryStats> => {
+    const params = new URLSearchParams();
+    params.append('year', year.toString());
+    if (state) {
+      params.append('state', state);
+    }
+    
+    return get<SummaryStats>(`/api/v1/stats/summary?${params.toString()}`);
+  },
+  
+  /**
+   * Get trend statistics for a range of years
+   */
+  getTrendStats: async (
+    metrics: string[],
+    startYear: number,
+    endYear: number,
+    state?: string
+  ): Promise<TrendStats> => {
+    const params = new URLSearchParams();
+    metrics.forEach(metric => params.append('metrics', metric));
+    params.append('start_year', startYear.toString());
+    params.append('end_year', endYear.toString());
+    if (state) {
+      params.append('state', state);
+    }
+    
+    return get<TrendStats>(`/api/v1/stats/trends?${params.toString()}`);
+  },
+  
+  /**
+   * Get comparison statistics for multiple libraries
+   */
+  getComparisonStats: async (
+    libraryIds: string[],
+    year: number,
+    metrics: string[]
+  ): Promise<ComparisonStats> => {
+    const params = new URLSearchParams();
+    libraryIds.forEach(id => params.append('library_ids', id));
+    params.append('year', year.toString());
+    metrics.forEach(metric => params.append('metrics', metric));
+    
+    return get<ComparisonStats>(`/api/v1/stats/comparison?${params.toString()}`);
+  },
+  
+  /**
+   * Get available statistic categories and metrics
+   */
+  getStatisticCategories: async (): Promise<StatisticCategory[]> => {
+    return get<StatisticCategory[]>('/api/v1/stats/categories');
+  },
+  
+  /**
+   * Get dashboard summary for a library
+   */
+  getDashboardSummary: async (
+    libraryId: string = 'NY0773',
+    year: number = 2006
+  ): Promise<DashboardSummary> => {
+    return get<DashboardSummary>(`/api/dashboard/summary?library_id=${libraryId}&year=${year}`);
+  },
+  
+  /**
+   * Get KPIs for a library
+   */
+  getKPIs: async (
+    libraryId: string = 'NY0773',
+    year: number = 2006,
+    metrics: string[] = ['total_circulation', 'visits', 'total_programs', 'total_program_attendance']
+  ): Promise<KPI[]> => {
+    const params = new URLSearchParams();
+    params.append('library_id', libraryId);
+    params.append('year', year.toString());
+    metrics.forEach(metric => params.append('metrics', metric));
+    
+    return get<KPI[]>(`/api/dashboard/kpis?${params.toString()}`);
+  }
 };
 
-export const fetchTrendStats = (
-  metrics: string[],
-  startYear?: number,
-  endYear?: number,
-  state?: string
-): Promise<TrendStats> => {
-  const params: Record<string, any> = {
-    metrics: metrics.join(',')
-  };
-  if (startYear) params.start_year = startYear;
-  if (endYear) params.end_year = endYear;
-  if (state) params.state = state;
-
-  return get<TrendStats>('/stats/trends', params);
-};
-
-export const fetchComparisonStats = (
-  libraryIds: string[],
-  year?: number,
-  metrics?: string[]
-): Promise<ComparisonStats> => {
-  const params: Record<string, any> = {
-    library_ids: libraryIds.join(',')
-  };
-  if (year) params.year = year;
-  if (metrics) params.metrics = metrics.join(',');
-
-  return get<ComparisonStats>('/stats/comparison', params);
-};
-
-// Get all statistic categories
-export const getStatisticCategories = (): Promise<StatisticCategory[]> => {
-  return get<StatisticCategory[]>('/statistics/categories');
-};
-
-// Get all metrics
-export const getStatisticMetrics = (categoryId?: string): Promise<StatisticMetric[]> => {
-  const params = categoryId ? { category: categoryId } : {};
-  return get<StatisticMetric[]>('/statistics/metrics', params);
-};
-
-// Get statistics for a specific library
-export const getLibraryStatistics = (
-  libraryId: number,
-  year?: number,
-  categoryId?: string
-): Promise<LibraryStatistics> => {
-  const params = {
-    ...(year && { year }),
-    ...(categoryId && { category: categoryId }),
-  };
-  return get<LibraryStatistics>(`/libraries/${libraryId}/statistics`, params);
-};
-
-// Get trend data for a specific metric and library
-export const getLibraryTrend = (
-  libraryId: number,
-  metricId: string,
-  startYear?: number,
-  endYear?: number
-): Promise<TrendData> => {
-  const params = {
-    ...(startYear && { start_year: startYear }),
-    ...(endYear && { end_year: endYear }),
-  };
-  return get<TrendData>(`/libraries/${libraryId}/trends/${metricId}`, params);
-};
-
-// Get multiple trends for a library
-export const getLibraryTrends = (
-  libraryId: number,
-  metricIds: string[],
-  startYear?: number,
-  endYear?: number
-): Promise<TrendData[]> => {
-  const params = {
-    metrics: metricIds.join(','),
-    ...(startYear && { start_year: startYear }),
-    ...(endYear && { end_year: endYear }),
-  };
-  return get<TrendData[]>(`/libraries/${libraryId}/trends`, params);
-};
-
-// Compare libraries for a specific metric
-export const compareLibraries = (
-  libraryIds: number[],
-  metricId: string,
-  year?: number
-): Promise<ComparisonData> => {
-  const params = {
-    libraries: libraryIds.join(','),
-    ...(year && { year }),
-  };
-  return get<ComparisonData>(`/statistics/compare/${metricId}`, params);
-};
-
-// Compare libraries for multiple metrics
-export const compareLibrariesMultiMetric = (
-  libraryIds: number[],
-  metricIds: string[],
-  year?: number
-): Promise<ComparisonData[]> => {
-  const params = {
-    libraries: libraryIds.join(','),
-    metrics: metricIds.join(','),
-    ...(year && { year }),
-  };
-  return get<ComparisonData[]>('/statistics/compare', params);
-};
-
-// Get state averages for a metric
-export const getStateAverages = (
-  metricId: string,
-  year?: number
-): Promise<StateAverage[]> => {
-  const params = year ? { year } : {};
-  return get<StateAverage[]>(`/statistics/state-averages/${metricId}`, params);
-};
-
-// Get national average for a metric
-export const getNationalAverage = (
-  metricId: string,
-  year?: number
-): Promise<NationalAverage> => {
-  const params = year ? { year } : {};
-  return get<NationalAverage>(`/statistics/national-average/${metricId}`, params);
-};
-
-// Get available years for statistics
-export const getAvailableYears = (): Promise<number[]> => {
-  return get<number[]>('/statistics/years');
-}; 
+// Export default
+export default statsService; 

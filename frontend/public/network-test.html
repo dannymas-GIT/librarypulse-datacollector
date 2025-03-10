@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .test-container {
+      margin-bottom: 20px;
+    }
+    .test-result {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #3a80d2;
+    }
+  </style>
+</head>
+<body>
+  <h1>Network Test</h1>
+  <p>This page tests network connectivity to various endpoints.</p>
+  
+  <div class="test-container">
+    <h2>1. Test Frontend Server</h2>
+    <button id="testFrontend">Test Frontend</button>
+    <div id="frontendResult" class="test-result">Click the button to test...</div>
+  </div>
+  
+  <div class="test-container">
+    <h2>2. Test Backend API</h2>
+    <button id="testBackend">Test Backend</button>
+    <div id="backendResult" class="test-result">Click the button to test...</div>
+  </div>
+  
+  <div class="test-container">
+    <h2>3. Test CORS</h2>
+    <button id="testCors">Test CORS</button>
+    <div id="corsResult" class="test-result">Click the button to test...</div>
+  </div>
+  
+  <div class="test-container">
+    <h2>4. Test WebSocket</h2>
+    <button id="testWebSocket">Test WebSocket</button>
+    <div id="webSocketResult" class="test-result">Click the button to test...</div>
+  </div>
+  
+  <script>
+    // Test frontend server
+    document.getElementById('testFrontend').addEventListener('click', async () => {
+      const resultElement = document.getElementById('frontendResult');
+      resultElement.textContent = 'Testing frontend server...';
+      resultElement.className = 'test-result';
+      
+      try {
+        const response = await fetch('/');
+        const status = response.status;
+        const statusText = response.statusText;
+        const headers = {};
+        for (const [key, value] of response.headers.entries()) {
+          headers[key] = value;
+        }
+        
+        const text = await response.text();
+        const hasRootDiv = text.includes('<div id="root"></div>');
+        
+        resultElement.textContent = `
+Status: ${status} ${statusText}
+Headers: ${JSON.stringify(headers, null, 2)}
+Has Root Div: ${hasRootDiv}
+Response Length: ${text.length} characters
+        `;
+        resultElement.className = 'test-result success';
+      } catch (error) {
+        resultElement.textContent = `Error: ${error.message}`;
+        resultElement.className = 'test-result error';
+      }
+    });
+    
+    // Test backend API
+    document.getElementById('testBackend').addEventListener('click', async () => {
+      const resultElement = document.getElementById('backendResult');
+      resultElement.textContent = 'Testing backend API...';
+      resultElement.className = 'test-result';
+      
+      try {
+        const response = await fetch('http://localhost:8000/api/historical/years');
+        const status = response.status;
+        const statusText = response.statusText;
+        const headers = {};
+        for (const [key, value] of response.headers.entries()) {
+          headers[key] = value;
+        }
+        
+        const data = await response.json();
+        
+        resultElement.textContent = `
+Status: ${status} ${statusText}
+Headers: ${JSON.stringify(headers, null, 2)}
+Data: ${JSON.stringify(data, null, 2)}
+        `;
+        resultElement.className = 'test-result success';
+      } catch (error) {
+        resultElement.textContent = `Error: ${error.message}`;
+        resultElement.className = 'test-result error';
+      }
+    });
+    
+    // Test CORS
+    document.getElementById('testCors').addEventListener('click', async () => {
+      const resultElement = document.getElementById('corsResult');
+      resultElement.textContent = 'Testing CORS...';
+      resultElement.className = 'test-result';
+      
+      try {
+        const response = await fetch('http://localhost:8000/api/historical/years', {
+          method: 'OPTIONS',
+          headers: {
+            'Origin': window.location.origin,
+            'Access-Control-Request-Method': 'GET',
+            'Access-Control-Request-Headers': 'Content-Type'
+          }
+        });
+        
+        const status = response.status;
+        const statusText = response.statusText;
+        const headers = {};
+        for (const [key, value] of response.headers.entries()) {
+          headers[key] = value;
+        }
+        
+        const corsHeaders = {
+          'Access-Control-Allow-Origin': headers['access-control-allow-origin'],
+          'Access-Control-Allow-Methods': headers['access-control-allow-methods'],
+          'Access-Control-Allow-Headers': headers['access-control-allow-headers'],
+          'Access-Control-Allow-Credentials': headers['access-control-allow-credentials']
+        };
+        
+        resultElement.textContent = `
+Status: ${status} ${statusText}
+CORS Headers: ${JSON.stringify(corsHeaders, null, 2)}
+All Headers: ${JSON.stringify(headers, null, 2)}
+        `;
+        resultElement.className = 'test-result success';
+      } catch (error) {
+        resultElement.textContent = `Error: ${error.message}`;
+        resultElement.className = 'test-result error';
+      }
+    });
+    
+    // Test WebSocket
+    document.getElementById('testWebSocket').addEventListener('click', () => {
+      const resultElement = document.getElementById('webSocketResult');
+      resultElement.textContent = 'Testing WebSocket connection...';
+      resultElement.className = 'test-result';
+      
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const wsUrl = `${protocol}//${host}`;
+        
+        resultElement.textContent += `\nAttempting to connect to: ${wsUrl}`;
+        
+        const socket = new WebSocket(wsUrl);
+        
+        socket.onopen = () => {
+          resultElement.textContent += '\nWebSocket connection opened successfully!';
+          resultElement.className = 'test-result success';
+          socket.close();
+        };
+        
+        socket.onerror = (error) => {
+          resultElement.textContent += `\nWebSocket error: ${error.message || 'Unknown error'}`;
+          resultElement.className = 'test-result error';
+        };
+        
+        socket.onclose = (event) => {
+          resultElement.textContent += `\nWebSocket connection closed. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`;
+        };
+      } catch (error) {
+        resultElement.textContent = `Error: ${error.message}`;
+        resultElement.className = 'test-result error';
+      }
+    });
+  </script>
+</body>
+</html> 
