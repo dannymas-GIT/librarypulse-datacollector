@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { Card } from '@/components/ui/Card';
 import statsService from '@/services/statsService';
 import { libraryService } from '@/services/libraryService';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // Define types for KPI and DashboardSummary since they're not exported from statsService
 interface KPI {
@@ -61,6 +63,44 @@ const StatCard: React.FC<{ kpi: KPI }> = ({ kpi }) => {
         </p>
       )}
     </div>
+  );
+};
+
+// Chart component for visualizing KPI data
+const KpiChart: React.FC<{ kpis: KPI[] }> = ({ kpis }) => {
+  // Prepare data for the chart
+  const chartData = kpis.map(kpi => ({
+    name: kpi.name,
+    current: kpi.value,
+    previous: kpi.previous_value || 0
+  }));
+
+  return (
+    <Card className="p-6 mt-6">
+      <h2 className="text-xl font-semibold mb-4">Key Metrics Comparison</h2>
+      <div className="h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="name" 
+              angle={-45} 
+              textAnchor="end"
+              height={70}
+              interval={0}
+            />
+            <YAxis />
+            <Tooltip formatter={(value) => formatNumber(value as number)} />
+            <Legend />
+            <Bar dataKey="current" name="Current Year" fill="#8884d8" />
+            <Bar dataKey="previous" name="Previous Year" fill="#82ca9d" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </Card>
   );
 };
 
@@ -171,6 +211,42 @@ const Dashboard: React.FC = () => {
               <StatCard key={index} kpi={kpi} />
             ))}
           </div>
+          
+          {/* Add chart visualization */}
+          <KpiChart kpis={dashboardData.kpis} />
+          
+          {/* Additional metrics section */}
+          <Card className="p-6 mt-6">
+            <h2 className="text-xl font-semibold mb-4">Additional Library Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Collection Overview</h3>
+                <ul className="space-y-2">
+                  {dashboardData.kpis
+                    .filter(kpi => kpi.name.includes('Collection'))
+                    .map((kpi, index) => (
+                      <li key={index} className="flex justify-between">
+                        <span className="text-gray-600">{kpi.name}</span>
+                        <span className="font-medium">{formatNumber(kpi.value)}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Program Statistics</h3>
+                <ul className="space-y-2">
+                  {dashboardData.kpis
+                    .filter(kpi => kpi.name.includes('Program'))
+                    .map((kpi, index) => (
+                      <li key={index} className="flex justify-between">
+                        <span className="text-gray-600">{kpi.name}</span>
+                        <span className="font-medium">{formatNumber(kpi.value)}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+          </Card>
         </>
       )}
     </div>

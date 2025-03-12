@@ -11,11 +11,14 @@ The IMLS Library Pulse project provides a modern web application that allows lib
 - Analyze trends in library metrics over time
 - Compare multiple libraries across various metrics
 - Access and manage PLS data from 1992 to the present
+- View demographic data for library service areas to inform decision-making
 
 ### Data Sources
 
 - **Public Libraries Survey (PLS)**: Comprehensive annual data collection since 1988 (files available from 1992)
-- Most recent data: FY 2022
+- **American Community Survey (ACS)**: Demographic data from the US Census Bureau
+- Most recent PLS data: FY 2022
+- Most recent demographic data: ACS 5-Year Estimates (2017-2021)
 - Coverage: ~9,000 public libraries with ~17,000 outlets across the US
 
 ### Data Pipeline
@@ -229,4 +232,46 @@ The API documentation is available at http://localhost:8000/docs when the server
 
 ## Contributors
 
-[Add contributor information] 
+[Add contributor information]
+
+## Demographic Data
+
+The application includes integration with US Census demographic data for library service areas:
+
+### Demographic Data Features
+
+- View comprehensive demographic data for library service areas
+- Access population statistics, economic indicators, education levels, and housing information
+- Inform library services based on the demographic makeup of service areas
+- Plan for future community needs using demographic insights
+
+### Demographic Data Sources
+
+- **American Community Survey (ACS) 5-Year Estimates**: Detailed demographic data collected by the US Census Bureau
+- Current implementation includes ACS 2017-2021 data
+- Coverage includes detailed breakdowns by ZIP Code Tabulation Areas (ZCTAs)
+
+### Data Categories
+
+- **Population**: Total population, median age, age distribution, racial demographics
+- **Economics**: Median household income, poverty rates
+- **Education**: High school graduation rates, bachelor's degree attainment
+- **Housing**: Total housing units, owner-occupied units, median home values
+
+### Demographic Data Flow
+
+The application implements a complete data flow for demographic information:
+
+1. **Data Collection**: Census data retrieved via API and stored in structured format
+2. **Database Storage**: PostgreSQL tables for different demographic categories
+3. **API Layer**: RESTful endpoints for accessing demographic data
+4. **Frontend Display**: Clean, organized presentation of demographic statistics
+
+### Planned Features
+
+- Multi-library demographic comparisons
+- Setup wizard for selecting comparison libraries based on demographic similarity
+- Visual comparisons of demographic metrics between libraries
+- Identification of service gaps based on demographic needs
+
+For more information on the demographic data implementation, see the [ROADMAP.md](./ROADMAP.md) file and the detailed [DEMOGRAPHIC_DATA.md](./DEMOGRAPHIC_DATA.md) documentation. 

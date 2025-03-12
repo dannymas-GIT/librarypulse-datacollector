@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     IMLS_DATA_BASE_URL: str = "https://www.imls.gov/research-evaluation/data-collection/public-libraries-survey"
     DATA_STORAGE_PATH: Path = Path("./data")
 
+    # Logging
+    LOG_LEVEL: str = "INFO"
+    LOG_FILE: str = "logs/api.log"
+
     @field_validator("DATA_STORAGE_PATH", mode="before")
     def validate_data_path(cls, v: Union[str, Path]) -> Path:
         if isinstance(v, str):

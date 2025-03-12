@@ -1,0 +1,38 @@
+{
+  "geography": {
+    "name": "West Babylon",
+    "zcta": "11704",
+    "state": "NY",
+    "county": "Suffolk"
+  },
+  "population": {
+    "total": 40344,
+    "median_age": 43.4,
+    "by_age": {
+      "under_18": 7345,
+      "over_65": 7891
+    },
+    "by_race": {
+      "white": 29572,
+      "black": 5180,
+      "hispanic": 6469
+    }
+  },
+  "economics": {
+    "median_household_income": 96235,
+    "poverty_rate": 5.2
+  },
+  "education": {
+    "high_school_or_higher": 91.2,
+    "bachelors_or_higher": 33.7
+  },
+  "housing": {
+    "total_units": 14526,
+    "owner_occupied": 11620,
+    "median_home_value": 395200
+  },
+  "data_source": {
+    "name": "American Community Survey 5-Year Estimates",
+    "year": "2017-2021"
+  }
+}

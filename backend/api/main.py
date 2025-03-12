@@ -17,6 +17,7 @@ if backend_dir not in sys.path:
 from api.historical_data import router as historical_router
 from api.dashboard import router as dashboard_router
 from api.libraries import router as libraries_router
+from api.demographics import router as demographics_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +43,7 @@ app.add_middleware(
 app.include_router(historical_router)
 app.include_router(dashboard_router)
 app.include_router(libraries_router)
+app.include_router(demographics_router)
 
 # Root endpoint
 @app.get("/")

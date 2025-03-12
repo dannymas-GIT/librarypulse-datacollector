@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { BarChart4, BookOpen, LineChart, Library, FileDigit, Settings, Home, History, Wrench } from 'lucide-react';
+import { BarChart, BookOpen, Library, FileText, Home, History, BarChart3 } from 'lucide-react';
 
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
@@ -7,12 +7,10 @@ import Sidebar from './Sidebar';
 const navItems = [
   { name: 'Dashboard', path: '/', icon: <Home className="w-5 h-5" /> },
   { name: 'Libraries', path: '/libraries', icon: <Library className="w-5 h-5" /> },
-  { name: 'Statistics', path: '/statistics', icon: <BarChart4 className="w-5 h-5" /> },
-  { name: 'Trends', path: '/trends', icon: <LineChart className="w-5 h-5" /> },
-  { name: 'Historical', path: '/historical', icon: <History className="w-5 h-5" /> },
-  { name: 'API Test', path: '/api-test', icon: <Wrench className="w-5 h-5" /> },
-  { name: 'Comparison', path: '/comparison', icon: <BookOpen className="w-5 h-5" /> },
-  { name: 'Data Management', path: '/data-management', icon: <FileDigit className="w-5 h-5" /> },
+  { name: 'Historical Trends', path: '/historical', icon: <History className="w-5 h-5" /> },
+  { name: 'Statistics', path: '/statistics', icon: <BarChart className="w-5 h-5" /> },
+  { name: 'Comparison', path: '/comparison', icon: <BarChart3 className="w-5 h-5" /> },
+  { name: 'Data Management', path: '/data-management', icon: <FileText className="w-5 h-5" /> },
 ];
 
 const Layout = () => {

@@ -9,5 +9,37 @@ from app.schemas.pls_data import (
     PLSDatasetWithRelations,
     PLSDatasetUpdate,
     LibraryUpdate,
-    LibraryOutletUpdate
+    LibraryOutletUpdate,
+    DatasetCreate,
+    DatasetUpdate,
+    Dataset,
+    PLSData,
+    PLSDataCreate,
+    PLSDataUpdate
+)
+
+from app.schemas.library_config import (
+    LibraryConfig,
+    LibraryConfigCreate,
+    LibraryConfigUpdate
+)
+
+from app.schemas.demographic_data import (
+    DemographicData,
+    SimpleDemographicData,
+    DemographicDatasetCreate,
+    DemographicDatasetUpdate,
+    DemographicDatasetInDB,
+    PopulationCreate,
+    PopulationUpdate,
+    PopulationInDB,
+    EconomicCreate,
+    EconomicUpdate,
+    EconomicInDB,
+    EducationCreate,
+    EducationUpdate,
+    EducationInDB,
+    HousingCreate,
+    HousingUpdate,
+    HousingInDB
 ) 
