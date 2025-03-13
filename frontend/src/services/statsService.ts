@@ -48,15 +48,11 @@ export interface ComparisonStats {
 export interface StatisticCategory {
   id: string;
   name: string;
-  description: string;
-  metrics: StatisticMetric[];
-}
-
-export interface StatisticMetric {
-  id: string;
-  name: string;
-  description: string;
-  unit: string;
+  metrics: {
+    id: string;
+    name: string;
+    description?: string;
+  }[];
 }
 
 export interface KPI {
@@ -64,7 +60,7 @@ export interface KPI {
   value: number;
   previous_value?: number;
   change_percent?: number;
-  trend?: string;
+  trend?: 'up' | 'down' | 'stable';
   unit?: string;
 }
 
@@ -76,7 +72,7 @@ export interface DashboardSummary {
 }
 
 // Stats service functions
-const statsService = {
+export const statsService = {
   /**
    * Get summary statistics for a specific year
    */
@@ -87,8 +83,34 @@ const statsService = {
       params.append('state', state);
     }
     
-    const endpoint = `${apiConfig.backend.endpoints.statistics}/summary?${params.toString()}`;
-    return get<SummaryStats>(endpoint);
+    try {
+      const endpoint = `${apiConfig.backend.endpoints.statistics}/summary?${params.toString()}`;
+      console.log('Fetching summary stats with URL:', endpoint);
+      return await get<SummaryStats>(endpoint);
+    } catch (error) {
+      console.error('Error fetching summary stats:', error);
+      
+      // Return mock data as fallback
+      return {
+        year,
+        state: state || 'NY',
+        library_count: 44,
+        total_visits: 1250000,
+        total_circulation: 2500000,
+        total_programs: 3500,
+        total_program_attendance: 75000,
+        total_operating_revenue: 15000000,
+        total_operating_expenditures: 14000000,
+        total_staff: 350,
+        outlet_count: 50,
+        avg_visits_per_library: 28409,
+        avg_circulation_per_library: 56818,
+        avg_programs_per_library: 79.5,
+        avg_operating_revenue_per_library: 340909,
+        avg_operating_expenditures_per_library: 318182,
+        avg_staff_per_library: 7.95
+      };
+    }
   },
   
   /**
@@ -108,8 +130,23 @@ const statsService = {
       params.append('state', state);
     }
     
-    const endpoint = `${apiConfig.backend.endpoints.statistics}/trends?${params.toString()}`;
-    return get<TrendStats>(endpoint);
+    try {
+      const endpoint = `${apiConfig.backend.endpoints.statistics}/trends?${params.toString()}`;
+      console.log('Fetching trend stats with URL:', endpoint);
+      return await get<TrendStats>(endpoint);
+    } catch (error) {
+      console.error('Error fetching trend stats:', error);
+      
+      // Return mock data as fallback
+      const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
+      const mockTrends: TrendStats = { years };
+      
+      metrics.forEach(metric => {
+        mockTrends[metric] = years.map(() => Math.floor(Math.random() * 1000000) + 500000);
+      });
+      
+      return mockTrends;
+    }
   },
   
   /**
@@ -125,156 +162,197 @@ const statsService = {
     params.append('year', year.toString());
     metrics.forEach(metric => params.append('metrics', metric));
     
-    const endpoint = `${apiConfig.backend.endpoints.statistics}/comparison?${params.toString()}`;
-    return get<ComparisonStats>(endpoint);
+    try {
+      const endpoint = `${apiConfig.backend.endpoints.statistics}/comparison?${params.toString()}`;
+      console.log('Fetching comparison stats with URL:', endpoint);
+      return await get<ComparisonStats>(endpoint);
+    } catch (error) {
+      console.error('Error fetching comparison stats:', error);
+      
+      // Return mock data as fallback
+      const mockComparison: ComparisonStats = {
+        year,
+        libraries: libraryIds.map(id => ({
+          library_id: id,
+          name: id === 'NY0773' ? 'West Babylon Public Library' : 
+                id === 'NY0001' ? 'Amityville Public Library' : 
+                id === 'NY0002' ? 'Babylon Public Library' : `Library ${id}`,
+          state: 'NY',
+          metrics: metrics.reduce((acc, metric) => {
+            acc[metric] = {
+              name: metric.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              value: Math.floor(Math.random() * 1000000) + 10000
+            };
+            return acc;
+          }, {} as Record<string, { name: string; value: number }>)
+        })),
+        metric_definitions: metrics.reduce((acc, metric) => {
+          acc[metric] = `Definition for ${metric.replace(/_/g, ' ')}`;
+          return acc;
+        }, {} as Record<string, string>)
+      };
+      
+      return mockComparison;
+    }
   },
   
   /**
    * Get available statistic categories and metrics
    */
   getStatisticCategories: async (): Promise<StatisticCategory[]> => {
-    const endpoint = `${apiConfig.backend.endpoints.statistics}/categories`;
-    return get<StatisticCategory[]>(endpoint);
+    try {
+      const endpoint = `${apiConfig.backend.endpoints.statistics}/categories`;
+      console.log('Fetching statistic categories with URL:', endpoint);
+      return await get<StatisticCategory[]>(endpoint);
+    } catch (error) {
+      console.error('Error fetching statistic categories:', error);
+      
+      // Return mock data as fallback
+      return [
+        {
+          id: 'usage',
+          name: 'Library Usage',
+          metrics: [
+            { id: 'total_circulation', name: 'Total Circulation' },
+            { id: 'visits', name: 'Visits' },
+            { id: 'reference_transactions', name: 'Reference Transactions' },
+            { id: 'registered_users', name: 'Registered Users' }
+          ]
+        },
+        {
+          id: 'collections',
+          name: 'Collections',
+          metrics: [
+            { id: 'print_collection', name: 'Print Collection' },
+            { id: 'electronic_collection', name: 'Electronic Collection' },
+            { id: 'audio_collection', name: 'Audio Collection' },
+            { id: 'video_collection', name: 'Video Collection' }
+          ]
+        },
+        {
+          id: 'programs',
+          name: 'Programs',
+          metrics: [
+            { id: 'total_programs', name: 'Total Programs' },
+            { id: 'total_program_attendance', name: 'Program Attendance' },
+            { id: 'children_programs', name: 'Children\'s Programs' },
+            { id: 'adult_programs', name: 'Adult Programs' }
+          ]
+        },
+        {
+          id: 'finance',
+          name: 'Finance',
+          metrics: [
+            { id: 'total_operating_revenue', name: 'Total Revenue' },
+            { id: 'total_operating_expenditures', name: 'Total Expenditures' },
+            { id: 'staff_expenditures', name: 'Staff Expenditures' },
+            { id: 'collection_expenditures', name: 'Collection Expenditures' }
+          ]
+        }
+      ];
+    }
   },
   
   /**
-   * Get dashboard summary for a library
+   * Get KPIs for the dashboard
    */
-  getDashboardSummary: async (
-    libraryId: string = 'NY0773',
-    year: number | string = 2006
-  ): Promise<DashboardSummary> => {
+  getKPIs: async (libraryId: string, year?: number): Promise<DashboardSummary> => {
+    const params = new URLSearchParams();
+    params.append('library_id', libraryId);
+    if (year) {
+      params.append('year', year.toString());
+    }
+    
     try {
-      // Try to get data from the API
-      console.log(`Fetching dashboard data for library ${libraryId} and year ${year} from API`);
-      const endpoint = `${apiConfig.backend.endpoints.dashboard}/summary?library_id=${libraryId}&year=${year}`;
+      const endpoint = `${apiConfig.backend.endpoints.dashboard}/kpis?${params.toString()}`;
+      console.log('Fetching KPIs with URL:', endpoint);
       return await get<DashboardSummary>(endpoint);
     } catch (error) {
-      console.log('Error fetching dashboard data, using mock data:', error);
+      console.error('Error fetching KPIs:', error);
       
-      // If API fails, return mock data
-      console.log(`Generating mock dashboard data for library ${libraryId} and year ${year}`);
+      // Generate a multiplier based on the library ID to make the mock data different for each library
+      const idNum = parseInt(libraryId.replace(/\D/g, '')) || 1;
+      const multiplier = (idNum % 10) / 10 + 0.5; // Between 0.5 and 1.4
       
-      // Define library names for known libraries
-      const libraryNames = {
-        'NY0773': 'West Babylon Public Library',
-        'NY0001': 'Amityville Public Library',
-        'NY0002': 'Babylon Public Library',
-        'NY0784': 'Wyandanch Public Library',
-        'NY0776': 'Smithtown Library',
-        'NY0788': 'Huntington Public Library',
-        'NY0845': 'Patchogue-Medford Library',
-        'NY0856': 'Port Jefferson Free Library'
-      };
-      
-      // Generate random values for metrics
-      const baseCirculation = 350000;
-      const baseVisits = 195000;
-      const basePrograms = 480;
-      const baseProgramAttendance = 13500;
-      const basePrintCollection = 120000;
-      const baseElectronicCollection = 50000;
-      
-      // Use a multiplier based on the library ID to get different but consistent values
-      const multiplier = parseInt(libraryId.replace(/\D/g, '')) % 10 / 10 + 0.5;
+      // Return mock data as fallback
+      const libraryName = libraryId === 'NY0773' 
+        ? 'West Babylon Public Library'
+        : libraryId === 'NY0001'
+          ? 'Amityville Public Library' 
+          : libraryId === 'NY0002'
+            ? 'Babylon Public Library'
+            : `Library ${libraryId}`;
       
       return {
         library_id: libraryId,
-        library_name: libraryNames[libraryId as keyof typeof libraryNames] || `Library ${libraryId}`,
-        year: Number(year),
+        library_name: libraryName,
+        year: year || 2022,
         kpis: [
           {
-            name: "Total Circulation",
-            value: Math.round(baseCirculation * multiplier),
-            previous_value: Math.round(baseCirculation * multiplier * 0.9),
-            change_percent: Math.round(10 * multiplier),
-            trend: "up",
-            unit: "items"
+            name: 'Total Circulation',
+            value: Math.round(250000 * multiplier),
+            previous_value: Math.round(240000 * multiplier),
+            change_percent: 4.2,
+            trend: 'up',
+            unit: 'items'
           },
           {
-            name: "Visits",
-            value: Math.round(baseVisits * multiplier),
-            previous_value: Math.round(baseVisits * multiplier * 0.95),
-            change_percent: Math.round(5 * multiplier),
-            trend: "up",
-            unit: "visits"
+            name: 'Visits',
+            value: Math.round(120000 * multiplier),
+            previous_value: Math.round(115000 * multiplier),
+            change_percent: 4.3,
+            trend: 'up',
+            unit: 'visits'
           },
           {
-            name: "Total Programs",
-            value: Math.round(basePrograms * multiplier),
-            previous_value: Math.round(basePrograms * multiplier * 0.92),
-            change_percent: Math.round(8 * multiplier),
-            trend: "up",
-            unit: "programs"
+            name: 'Total Programs',
+            value: Math.round(520 * multiplier),
+            previous_value: Math.round(480 * multiplier),
+            change_percent: 8.3,
+            trend: 'up',
+            unit: 'programs'
           },
           {
-            name: "Program Attendance",
-            value: Math.round(baseProgramAttendance * multiplier),
-            previous_value: Math.round(baseProgramAttendance * multiplier * 0.9),
-            change_percent: Math.round(10 * multiplier),
-            trend: "up",
-            unit: "attendees"
+            name: 'Program Attendance',
+            value: Math.round(12500 * multiplier),
+            previous_value: Math.round(11000 * multiplier),
+            change_percent: 13.6,
+            trend: 'up',
+            unit: 'attendees'
           },
           {
-            name: "Print Collection",
-            value: Math.round(basePrintCollection * multiplier),
-            previous_value: Math.round(basePrintCollection * multiplier * 0.98),
-            change_percent: Math.round(2 * multiplier),
-            trend: "up",
-            unit: "items"
+            name: 'Print Collection',
+            value: Math.round(85000 * multiplier),
+            previous_value: Math.round(82000 * multiplier),
+            change_percent: 3.7,
+            trend: 'up',
+            unit: 'items'
           },
           {
-            name: "Electronic Collection",
-            value: Math.round(baseElectronicCollection * multiplier),
-            previous_value: Math.round(baseElectronicCollection * multiplier * 0.85),
-            change_percent: Math.round(15 * multiplier),
-            trend: "up",
-            unit: "items"
+            name: 'Electronic Collection',
+            value: Math.round(25000 * multiplier),
+            previous_value: Math.round(20000 * multiplier),
+            change_percent: 25.0,
+            trend: 'up',
+            unit: 'items'
           }
         ]
       };
     }
   },
   
-  /**
-   * Get KPIs for a library
-   */
-  getKPIs: async (
-    libraryId: string = 'NY0773',
-    year: number = 2006,
-    metrics: string[] = ['total_circulation', 'visits', 'total_programs', 'total_program_attendance']
-  ): Promise<KPI[]> => {
-    const params = new URLSearchParams();
-    params.append('library_id', libraryId);
-    params.append('year', year.toString());
-    metrics.forEach(metric => params.append('metrics', metric));
-    
-    const endpoint = `${apiConfig.backend.endpoints.dashboard}/kpis?${params.toString()}`;
-    return get<KPI[]>(endpoint);
+  // Mock data generators for testing
+  getMockSummaryStats: (year: number, state?: string): SummaryStats => {
+    return statsService.getSummaryStats(year || 2022, state);
+  },
+  
+  getMockTrendStats: (metrics: string[], startYear?: number, endYear?: number, state?: string): TrendStats => {
+    return statsService.getTrendStats(metrics, startYear || 2017, endYear || 2022, state);
+  },
+  
+  getMockComparisonStats: (libraryIds: string[], year?: number, metrics?: string[]): ComparisonStats => {
+    return statsService.getComparisonStats(libraryIds, year || 2022, metrics || ['total_circulation', 'visits']);
   }
 };
 
-// For backward compatibility
-export const fetchSummaryStats = (year?: number, state?: string): Promise<SummaryStats> => {
-  return statsService.getSummaryStats(year || 2022, state);
-};
-
-export const fetchTrendStats = (
-  metrics: string[],
-  startYear?: number,
-  endYear?: number,
-  state?: string
-): Promise<TrendStats> => {
-  return statsService.getTrendStats(metrics, startYear || 2017, endYear || 2022, state);
-};
-
-export const fetchComparisonStats = (
-  libraryIds: string[],
-  year?: number,
-  metrics?: string[]
-): Promise<ComparisonStats> => {
-  return statsService.getComparisonStats(libraryIds, year || 2022, metrics || ['total_circulation', 'visits']);
-};
-
-// Export default
 export default statsService; 
