@@ -14,6 +14,15 @@ import {
   Line
 } from 'recharts';
 import { AlertCircle, Calendar, BarChart as LucideBarChart } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Card } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { Toggle } from '@/components/ui/Toggle';
+import libraryDataService from '@/services/libraryDataService';
+import statsService from '@/services/statsService';
+import { ChevronDown, ChevronUp, DollarSign, TrendingDown, TrendingUp, Calculator, BookOpen, Users, FileText, PieChart, AlertTriangle, Info, Lightbulb, BookOpenCheck } from 'lucide-react';
 
 // Define the API URL directly
 const API_URL = 'http://localhost:8000/api/historical';
@@ -95,6 +104,37 @@ const HistoricalTrends: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
+  
+  // Add the missing selectedLibrary state
+  const [selectedLibrary, setSelectedLibrary] = useState({
+    id: 'NY0773',
+    name: 'West Babylon Public Library'
+  });
+  
+  // Get user preferences to set the selected library
+  useEffect(() => {
+    const getUserPreferences = async () => {
+      try {
+        const preferences = await libraryDataService.getUserPreferences();
+        if (preferences && preferences.primaryLibraryId) {
+          setSelectedLibrary({
+            id: preferences.primaryLibraryId,
+            name: preferences.primaryLibraryId === 'NY0773' 
+              ? 'West Babylon Public Library' 
+              : preferences.primaryLibraryId === 'NY0001'
+                ? 'Amityville Public Library'
+                : preferences.primaryLibraryId === 'NY0002'
+                  ? 'Babylon Public Library'
+                  : `Library ${preferences.primaryLibraryId}`
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user preferences:', error);
+      }
+    };
+    
+    getUserPreferences();
+  }, []);
   
   // Fetch available years
   useEffect(() => {
@@ -432,8 +472,340 @@ const HistoricalTrends: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Budget Forecast Section for Library Directors */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4 flex items-center">
+            <DollarSign className="mr-2" />
+            Financial Planning Tools
+          </h2>
+          
+          <BudgetForecast 
+            historicalData={trendData} 
+            selectedLibrary={selectedLibrary} 
+          />
+        </div>
       </div>
     </div>
+  );
+};
+
+// Budget Forecast component for financial projections
+const BudgetForecast = ({ historicalData, selectedLibrary }) => {
+  const [forecastLength, setForecastLength] = useState(3); // Years to forecast
+  const [growthAssumption, setGrowthAssumption] = useState('moderate');
+  
+  // Growth rate assumptions for different scenarios
+  const growthRates = {
+    conservative: {
+      revenue: 0.02, // 2% annual growth
+      expenditure: 0.03 // 3% annual growth
+    },
+    moderate: {
+      revenue: 0.03, // 3% annual growth
+      expenditure: 0.035 // 3.5% annual growth
+    },
+    optimistic: {
+      revenue: 0.045, // 4.5% annual growth
+      expenditure: 0.04 // 4% annual growth
+    }
+  };
+  
+  // Get the last 5 years of financial data
+  const financialHistory = historicalData?.filter(item => 
+    item.metric === 'total_operating_revenue' || 
+    item.metric === 'total_operating_expenditures'
+  ) || [];
+  
+  // Group by year
+  const groupedByYear = financialHistory.reduce((acc, item) => {
+    if (!acc[item.year]) {
+      acc[item.year] = {};
+    }
+    acc[item.year][item.metric] = item.value;
+    return acc;
+  }, {});
+  
+  // Convert to array for chart
+  const financialData = Object.keys(groupedByYear).map(year => ({
+    year: parseInt(year),
+    revenue: groupedByYear[year].total_operating_revenue || 0,
+    expenditure: groupedByYear[year].total_operating_expenditures || 0
+  })).sort((a, b) => a.year - b.year);
+  
+  // Generate forecast data
+  const generateForecast = () => {
+    if (financialData.length === 0) return [];
+    
+    const lastYear = financialData[financialData.length - 1];
+    const rates = growthRates[growthAssumption];
+    
+    const forecast = [lastYear];
+    let lastRevenue = lastYear.revenue;
+    let lastExpenditure = lastYear.expenditure;
+    
+    for (let i = 1; i <= forecastLength; i++) {
+      const year = lastYear.year + i;
+      const revenue = Math.round(lastRevenue * (1 + rates.revenue));
+      const expenditure = Math.round(lastExpenditure * (1 + rates.expenditure));
+      
+      forecast.push({ year, revenue, expenditure });
+      lastRevenue = revenue;
+      lastExpenditure = expenditure;
+    }
+    
+    return forecast;
+  };
+  
+  const forecastData = generateForecast();
+  
+  // Calculate key metrics
+  const calculateMetrics = () => {
+    if (forecastData.length <= 1) return null;
+    
+    const startYear = forecastData[0];
+    const endYear = forecastData[forecastData.length - 1];
+    
+    const revenueGrowth = (endYear.revenue - startYear.revenue) / startYear.revenue;
+    const expenditureGrowth = (endYear.expenditure - startYear.expenditure) / startYear.expenditure;
+    const surplusDeficitStart = startYear.revenue - startYear.expenditure;
+    const surplusDeficitEnd = endYear.revenue - endYear.expenditure;
+    const surplusDeficitChange = surplusDeficitEnd - surplusDeficitStart;
+    
+    return {
+      revenueGrowth,
+      expenditureGrowth,
+      surplusDeficitStart,
+      surplusDeficitEnd,
+      surplusDeficitChange
+    };
+  };
+  
+  const metrics = calculateMetrics();
+  
+  // Generate budget recommendations
+  const generateRecommendations = () => {
+    if (!metrics) return [];
+    
+    const recommendations = [];
+    
+    // Recommendation based on surplus/deficit
+    if (metrics.surplusDeficitEnd < 0) {
+      recommendations.push({
+        title: 'Address Budget Deficit',
+        description: `Projected deficit of $${Math.abs(metrics.surplusDeficitEnd).toLocaleString()} by year ${forecastData[forecastData.length - 1].year}`,
+        icon: <AlertTriangle className="text-red-500" />,
+        actions: [
+          'Identify potential new revenue sources',
+          'Review discretionary spending',
+          'Consider phased implementation of new initiatives'
+        ]
+      });
+    }
+    
+    // Recommendation based on revenue vs expenditure growth
+    if (metrics.revenueGrowth < metrics.expenditureGrowth) {
+      recommendations.push({
+        title: 'Expense Growth Outpacing Revenue',
+        description: 'Expenditures are growing faster than revenue, which may lead to future budget constraints',
+        icon: <TrendingUp className="text-amber-500" />,
+        actions: [
+          'Develop cost containment strategies',
+          'Explore grant opportunities',
+          'Consider service efficiency improvements'
+        ]
+      });
+    }
+    
+    // Recommendation for healthy budget
+    if (metrics.surplusDeficitEnd > 0 && metrics.revenueGrowth >= metrics.expenditureGrowth) {
+      recommendations.push({
+        title: 'Reinvestment Opportunity',
+        description: `Projected surplus of $${metrics.surplusDeficitEnd.toLocaleString()} provides opportunity for strategic investments`,
+        icon: <Lightbulb className="text-green-500" />,
+        actions: [
+          'Prioritize facility improvements',
+          'Invest in technology infrastructure',
+          'Expand high-demand collections or services'
+        ]
+      });
+    }
+    
+    // If expenditure is rising substantially
+    if (metrics.expenditureGrowth > 0.15) {
+      recommendations.push({
+        title: 'Significant Expenditure Growth',
+        description: `${(metrics.expenditureGrowth * 100).toFixed(1)}% projected growth in expenses over ${forecastLength} years may require budget restructuring`,
+        icon: <Info className="text-blue-500" />,
+        actions: [
+          'Conduct line-item budget review',
+          'Develop multi-year phasing for major expenses',
+          'Explore cooperative purchasing opportunities'
+        ]
+      });
+    }
+    
+    return recommendations;
+  };
+  
+  const recommendations = generateRecommendations();
+  
+  return (
+    <Card className="p-4 lg:p-6">
+      <div className="flex flex-col lg:flex-row justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center">
+            <Calculator className="w-5 h-5 mr-2 text-blue-500" />
+            Budget Forecast
+          </h2>
+          <p className="text-gray-600 text-sm mt-1">
+            Financial projections based on historical trends to assist with budget planning
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-4 mt-4 lg:mt-0">
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">Forecast Years</label>
+            <Select
+              value={forecastLength.toString()}
+              onChange={e => setForecastLength(parseInt(e.target.value))}
+              options={[
+                { value: '2', label: '2 Years' },
+                { value: '3', label: '3 Years' },
+                { value: '5', label: '5 Years' }
+              ]}
+              className="w-32"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">Growth Scenario</label>
+            <Select
+              value={growthAssumption}
+              onChange={e => setGrowthAssumption(e.target.value)}
+              options={[
+                { value: 'conservative', label: 'Conservative' },
+                { value: 'moderate', label: 'Moderate' },
+                { value: 'optimistic', label: 'Optimistic' }
+              ]}
+              className="w-36"
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Forecast Chart */}
+      <div className="h-80 mt-6">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={forecastData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <defs>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#8884d8" stopOpacity={0.1}/>
+              </linearGradient>
+              <linearGradient id="colorExpenditure" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#82ca9d" stopOpacity={0.1}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="year" />
+            <YAxis tickFormatter={(value) => `$${value / 1000}k`} />
+            <Tooltip 
+              formatter={(value) => [`$${value.toLocaleString()}`, undefined]}
+              labelFormatter={(label) => `Year: ${label}`}
+            />
+            <Legend />
+            <Area 
+              type="monotone" 
+              dataKey="revenue" 
+              name="Revenue" 
+              stroke="#8884d8" 
+              fillOpacity={1} 
+              fill="url(#colorRevenue)" 
+            />
+            <Area 
+              type="monotone" 
+              dataKey="expenditure" 
+              name="Expenditure" 
+              stroke="#82ca9d" 
+              fillOpacity={1} 
+              fill="url(#colorExpenditure)" 
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      
+      {/* Forecast Metrics */}
+      {metrics && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 className="text-blue-800 font-medium mb-1">Revenue Growth</h3>
+            <div className="text-2xl font-bold text-blue-900">{(metrics.revenueGrowth * 100).toFixed(1)}%</div>
+            <p className="text-blue-600 text-sm">Over {forecastLength} years</p>
+          </div>
+          
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <h3 className="text-green-800 font-medium mb-1">Expenditure Growth</h3>
+            <div className="text-2xl font-bold text-green-900">{(metrics.expenditureGrowth * 100).toFixed(1)}%</div>
+            <p className="text-green-600 text-sm">Over {forecastLength} years</p>
+          </div>
+          
+          <div className={`p-4 rounded-lg border ${metrics.surplusDeficitEnd >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+            <h3 className={`font-medium mb-1 ${metrics.surplusDeficitEnd >= 0 ? 'text-emerald-800' : 'text-red-800'}`}>
+              Projected {metrics.surplusDeficitEnd >= 0 ? 'Surplus' : 'Deficit'}
+            </h3>
+            <div className={`text-2xl font-bold ${metrics.surplusDeficitEnd >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>
+              ${Math.abs(metrics.surplusDeficitEnd).toLocaleString()}
+            </div>
+            <p className={`text-sm ${metrics.surplusDeficitEnd >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              By {forecastData[forecastData.length - 1].year}
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {/* Budget Recommendations */}
+      {recommendations.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <Lightbulb className="w-5 h-5 mr-2 text-amber-500" />
+            Budget Planning Recommendations
+          </h3>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {recommendations.map((rec, idx) => (
+              <div key={idx} className="border rounded-lg p-4 bg-gray-50">
+                <div className="flex items-start">
+                  <div className="mr-3 mt-1">{rec.icon}</div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">{rec.title}</h4>
+                    <p className="text-gray-700 text-sm mb-3">{rec.description}</p>
+                    
+                    <h5 className="text-sm font-medium text-gray-800 mb-1">Suggested Actions:</h5>
+                    <ul className="text-sm space-y-1">
+                      {rec.actions.map((action, actionIdx) => (
+                        <li key={actionIdx} className="flex items-start">
+                          <span className="text-blue-500 mr-2">•</span>
+                          <span>{action}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <div className="mt-6 text-sm text-gray-500 border-t pt-4">
+        <div className="flex items-center">
+          <Info className="w-4 h-4 mr-1 text-blue-500" />
+          <span>This forecast is based on historical data and selected growth assumptions. Actual results may vary.</span>
+        </div>
+      </div>
+    </Card>
   );
 };
 

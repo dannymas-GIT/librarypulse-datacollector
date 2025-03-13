@@ -342,16 +342,16 @@ export const statsService = {
   },
   
   // Mock data generators for testing
-  getMockSummaryStats: (year: number, state?: string): SummaryStats => {
-    return statsService.getSummaryStats(year || 2022, state);
+  getMockSummaryStats: async (year: number, state?: string): Promise<SummaryStats> => {
+    return await statsService.getSummaryStats(year || 2022, state);
   },
   
-  getMockTrendStats: (metrics: string[], startYear?: number, endYear?: number, state?: string): TrendStats => {
-    return statsService.getTrendStats(metrics, startYear || 2017, endYear || 2022, state);
+  getMockTrendStats: async (metrics: string[], startYear?: number, endYear?: number, state?: string): Promise<TrendStats> => {
+    return await statsService.getTrendStats(metrics, startYear || 2017, endYear || 2022, state);
   },
   
-  getMockComparisonStats: (libraryIds: string[], year?: number, metrics?: string[]): ComparisonStats => {
-    return statsService.getComparisonStats(libraryIds, year || 2022, metrics || ['total_circulation', 'visits']);
+  getMockComparisonStats: async (libraryIds: string[], year?: number, metrics?: string[]): Promise<ComparisonStats> => {
+    return await statsService.getComparisonStats(libraryIds, year || 2022, metrics || ['total_circulation', 'visits']);
   }
 };
 
