@@ -24,8 +24,13 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["vite/client", "node", "@types/react", "@types/react-dom"],
+    "allowJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"],
+  "include": ["src/**/*", "src/types.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 
