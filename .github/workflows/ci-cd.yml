@@ -226,6 +226,56 @@ jobs:
           load: true
           build-args: |
             SKIP_TYPECHECKING=true
+            
+      - name: Create docker-compose test network
+        run: docker network create librarypulse-test-network || true
+            
+      - name: Start Postgres container for testing
+        run: |
+          docker run -d \
+            --name postgres-test \
+            --network librarypulse-test-network \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=librarypulse_test \
+            -p 5433:5432 \
+            postgres:15
+
+      - name: Start Redis container for testing
+        run: |
+          docker run -d \
+            --name redis-test \
+            --network librarypulse-test-network \
+            -p 6381:6379 \
+            redis:7
+            
+      - name: Wait for Postgres to be ready
+        run: |
+          # Wait for Postgres to be ready
+          timeout 30s bash -c 'until docker exec postgres-test pg_isready -U postgres; do sleep 1; done'
+            
+      - name: Run Backend Smoke Tests
+        run: |
+          # Start the backend container for testing
+          docker run -d \
+            --name backend-test \
+            --network librarypulse-test-network \
+            -e DATABASE_URL="postgresql://postgres:postgres@postgres-test:5432/librarypulse_test" \
+            -e SECRET_KEY=test_key \
+            -e ENVIRONMENT=test \
+            -p 8001:8000 \
+            librarypulse-backend:test
+            
+          # Wait for backend to be ready
+          timeout 60s bash -c 'until curl -s http://localhost:8001/health; do sleep 2; done'
+            
+          # Test that the health endpoint is working
+          curl -s http://localhost:8001/health | grep "healthy"
+          
+          # Clean up containers
+          docker stop backend-test postgres-test redis-test
+          docker rm backend-test postgres-test redis-test
+          docker network rm librarypulse-test-network
 
   build-and-push:
     name: Build and Push Containers
@@ -292,6 +342,70 @@ jobs:
             SKIP_TYPECHECKING=true
             ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Deploy to Staging Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            # Update the deployment on staging
+            cd /opt/librarypulse-staging
+            
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull the latest images
+            docker compose pull
+            
+            # Update the environment file
+            cat > .env << 'EOF'
+            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
+            SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }}
+            ENVIRONMENT=staging
+            EOF
+            
+            # Start or restart the services
+            docker compose up -d
+            
+            # Clean up old images
+            docker system prune -f
+      
+      - name: Verify Staging Deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            # Wait for services to be ready
+            sleep 30
+            
+            # Test backend health
+            curl -s http://localhost:8000/health | grep "healthy" || exit 1
+            
+            # Test frontend is responding
+            curl -s -I http://localhost:3000 | grep "200" || exit 1
+            
+            echo "Staging deployment verified successfully!"
+
   deploy:
     name: Deploy to Production
     needs: build-and-push
@@ -315,7 +429,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Deploy to Server
+      - name: Deploy to Production Server
+        id: deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -325,21 +440,132 @@ jobs:
             # Update the deployment
             cd /opt/librarypulse
             
+            # Backup current deployment state
+            if [ -f docker-compose.yml ]; then
+              cp docker-compose.yml docker-compose.yml.backup
+            fi
+            
+            # Backup .env file if it exists
+            if [ -f .env ]; then
+              cp .env .env.backup
+            fi
+            
             # Login to GitHub Container Registry
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Pull the latest images
             docker compose pull
             
-            # Update the environment file if needed
-            # cat > .env << 'EOF'
-            # DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
-            # SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}
-            # ENVIRONMENT=production
-            # EOF
+            # Update the environment file
+            cat > .env << 'EOF'
+            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
+            SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}
+            ENVIRONMENT=production
+            EOF
             
             # Restart the services
             docker compose up -d
             
             # Clean up old images
-            docker system prune -f 
+            docker system prune -f
+      
+      - name: Verify Production Deployment
+        id: verify
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Wait for services to be ready
+            sleep 45
+            
+            # Check if backend is healthy
+            HEALTH_CHECK=$(curl -s http://localhost:8000/health || echo "Failed")
+            if [[ "$HEALTH_CHECK" != *"healthy"* ]]; then
+              echo "Backend health check failed!"
+              exit 1
+            fi
+            
+            # Check if frontend is accessible
+            FRONTEND_CHECK=$(curl -s -I http://localhost:3000 | grep -c "200" || echo "0")
+            if [ "$FRONTEND_CHECK" == "0" ]; then
+              echo "Frontend check failed!"
+              exit 1
+            fi
+            
+            echo "Production deployment verified successfully!"
+      
+      - name: Rollback on Failure
+        if: failure() && steps.deploy.outcome == 'success' && steps.verify.outcome == 'failure'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Rollback deployment
+            cd /opt/librarypulse
+            
+            echo "Deployment verification failed! Rolling back..."
+            
+            # Restore backup files
+            if [ -f docker-compose.yml.backup ]; then
+              cp docker-compose.yml.backup docker-compose.yml
+            fi
+            
+            if [ -f .env.backup ]; then
+              cp .env.backup .env
+            fi
+            
+            # Restart with previous configuration
+            docker compose down
+            docker compose up -d
+            
+            echo "Rollback complete."
+
+  fix-pydantic-warnings:
+    name: Fix Pydantic Warnings
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: deploy
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Create branch for Pydantic updates
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git checkout -b fix/pydantic-deprecation-warnings
+          
+      - name: Update User Schema
+        run: |
+          # Update the user schema with field_validator instead of validator
+          sed -i 's/@validator/@field_validator/g' backend/app/schemas/user.py
+          sed -i 's/from pydantic import validator/from pydantic import field_validator/g' backend/app/schemas/user.py
+          
+          # Update orm_mode to from_attributes
+          sed -i 's/orm_mode = True/from_attributes = True/g' backend/app/schemas/user.py
+          
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "fix: Update Pydantic v1 to v2 syntax"
+          body: |
+            This PR updates the codebase to use Pydantic v2 syntax:
+            
+            - Replaced `@validator` with `@field_validator`
+            - Changed `orm_mode = True` to `from_attributes = True`
+            
+            These changes fix the deprecation warnings that appear during CI builds.
+          branch: fix/pydantic-deprecation-warnings
+          base: main
+          labels: "maintenance,technical-debt"
+          delete-branch: true 
