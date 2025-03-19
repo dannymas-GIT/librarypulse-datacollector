@@ -1,3 +1,6 @@
+# This file is no longer used. The active workflow file is ci-cd.yml
+# This file is kept for reference only
+
 name: CI Pipeline
 
 on:
