@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional
 
-from pydantic import AnyHttpUrl, PostgresDsn, field_validator
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     ENVIRONMENT: str = "production"
     PROJECT_NAME: str = "IMLS Library Pulse"
+    PROJECT_DESCRIPTION: str = "API for the IMLS Library Pulse project"
+    VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
 
     # Logging
@@ -60,8 +62,8 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "True").lower() == "true"
 
     # Database
-    DATABASE_URL: PostgresDsn
-    TEST_DATABASE_URL: PostgresDsn = None  # type: ignore
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/librarypulse")
+    TEST_DATABASE_URL: Optional[str] = os.getenv("TEST_DATABASE_URL")
 
     # Data Settings
     IMLS_DATA_BASE_URL: str = "https://www.imls.gov/research-evaluation/data-collection/public-libraries-survey"

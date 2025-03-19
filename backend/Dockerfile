@@ -12,10 +12,8 @@ RUN apt-get update && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/data /app/extracted_data && \
-    chown -R appuser:appuser /app
+# Create necessary directories
+RUN mkdir -p /app/data /app/extracted_data /app/logs
 
 FROM python:3.11-slim
 
@@ -35,6 +33,35 @@ RUN apt-get update && \
 # Copy application code
 COPY . .
 
+# Patch SQLAlchemy connection for Docker
+RUN echo 'from sqlalchemy import create_engine\n\
+from sqlalchemy.ext.declarative import declarative_base\n\
+from sqlalchemy.orm import sessionmaker\n\
+import os\n\
+\n\
+# Get database URL directly from environment variable\n\
+db_url = os.environ.get("DATABASE_URL", "sqlite:///./test.db")\n\
+\n\
+# Create SQLAlchemy engine and session\n\
+engine = create_engine(db_url)\n\
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)\n\
+\n\
+# Base class for SQLAlchemy models\n\
+Base = declarative_base()\n\
+\n\
+def get_db():\n\
+    """Dependency for getting a database session.\n\
+\n\
+    Yields:\n\
+        Session: A SQLAlchemy session that will be closed after use.\n\
+    """\n\
+    db = SessionLocal()\n\
+    try:\n\
+        yield db\n\
+    finally:\n\
+        db.close()\n\
+' > /app/app/db/session.py
+
 # Add wait-for-it script
 RUN curl -s -o /usr/local/bin/wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh && \
     chmod +x /usr/local/bin/wait-for-it.sh
@@ -51,6 +78,12 @@ if [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ]; then\n\
 else\n\
     echo "Could not parse DATABASE_URL: $DATABASE_URL"\n\
 fi\n\
+\n\
+# Create necessary directories\n\
+mkdir -p /app/logs\n\
+\n\
+# Set permissions\n\
+chown -R appuser:appuser /app/logs\n\
 \n\
 # Start application\n\
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000\n\
