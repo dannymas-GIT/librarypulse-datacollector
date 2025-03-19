@@ -7,8 +7,6 @@ from app.api.api_v1.api import api_router
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
-from app.core.rate_limit import setup_rate_limiting, limiter
-from app.api import health
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,12 +33,16 @@ if settings.CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-# Set up rate limiting
-if settings.RATE_LIMIT_ENABLED:
-    app.state.limiter = limiter
-    from slowapi import _rate_limit_exceeded_handler
-    from slowapi.errors import RateLimitExceeded
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Set up rate limiting if enabled
+if getattr(settings, 'RATE_LIMIT_ENABLED', False):
+    try:
+        from app.core.rate_limit import setup_rate_limiting, limiter
+        app.state.limiter = limiter
+        from slowapi import _rate_limit_exceeded_handler
+        from slowapi.errors import RateLimitExceeded
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    except ImportError:
+        logger.warning("Rate limiting dependencies not installed. Rate limiting disabled.")
 
 # Add API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)

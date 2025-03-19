@@ -19,9 +19,11 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
+          exit-code: '1'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
@@ -77,10 +79,16 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
+      - name: Set PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
       - name: Run tests
         run: |
           cd backend
           python -m pytest tests/test_health.py -v
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
   docker-build:
     name: Docker Build

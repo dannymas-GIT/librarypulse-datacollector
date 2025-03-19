@@ -9,14 +9,10 @@ from typing import Generator, AsyncGenerator
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from fastapi import FastAPI
-from sqlalchemy.orm import sessionmaker, Session
-
 from app.core.config import settings, Settings
 from app.db.base import Base
 from app.db.session import SessionLocal, engine, get_db
 from app.main import app
-from app.api.deps import get_db
 
 # Test settings
 test_settings = Settings(
@@ -77,7 +73,7 @@ async def async_db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 @pytest.fixture
-def db_session():
+def db():
     """Fixture that provides a test database session."""
     connection = test_engine.connect()
     transaction = connection.begin()
@@ -92,28 +88,6 @@ def db_session():
     connection.close()
 
 @pytest.fixture
-def client(db_session):
-    """Fixture that provides a test client with overridden dependencies."""
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
-    
-    app.dependency_overrides[get_db] = override_get_db
-    
-    with TestClient(app) as test_client:
-        yield test_client
-    
-    # Clean up after the test
-    app.dependency_overrides.clear()
-
-@pytest.fixture(scope="module")
-def client():
-    with TestClient(app) as c:
-        yield c
-
-@pytest.fixture(scope="function")
 def client(db) -> Generator[TestClient, None, None]:
     """Create a FastAPI TestClient with the test database session."""
     def _get_test_db():
@@ -123,8 +97,10 @@ def client(db) -> Generator[TestClient, None, None]:
             pass
     
     # Override the get_db dependency
-    app.dependency_overrides = {}
     app.dependency_overrides[get_db] = _get_test_db
     
     with TestClient(app) as test_client:
-        yield test_client 
+        yield test_client
+    
+    # Clean up after the test
+    app.dependency_overrides.clear() 

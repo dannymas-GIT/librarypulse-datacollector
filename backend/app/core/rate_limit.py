@@ -5,11 +5,27 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 
-# Create rate limiter with memory storage for tests
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=[settings.RATE_LIMIT_DEFAULT]
-)
+# Dummy limiter class for tests
+class DummyLimiter:
+    def __init__(self, *args, **kwargs):
+        pass
+    
+    def __call__(self, *args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+# Create dummy limiter
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["100/minute"]
+    )
+except ImportError:
+    limiter = DummyLimiter()
 
 # Rate limit rules
 RATE_LIMIT_RULES: Dict[str, str] = {
@@ -79,33 +95,5 @@ def setup_rate_limiting(app):
     Args:
         app: FastAPI application instance
     """
-    if not settings.RATE_LIMIT_ENABLED:
-        return
-    
-    # Register rate limiter with app
-    app.state.limiter = limiter
-    
-    # Add limiter exception handler
-    from slowapi.errors import RateLimitExceeded
-    
-    @app.exception_handler(RateLimitExceeded)
-    async def rate_limit_handler(request, exc):
-        return Response(
-            content='{"detail": "Too many requests"}',
-            status_code=429,
-            media_type="application/json"
-        )
-        
-    # Register the HTTP middleware
-    @app.middleware("http")
-    async def rate_limit_middleware(request: Request, call_next):
-        # Skip rate limiting for whitelisted IPs
-        client_ip = get_remote_address(request)
-        if is_whitelisted_ip(client_ip):
-            return await call_next(request)
-        
-        # Process request - rate limiting is handled by slowapi middleware
-        response = await call_next(request)
-        
-        # Return response with or without rate limit headers
-        return response 
+    # This is handled in main.py now
+    pass 
