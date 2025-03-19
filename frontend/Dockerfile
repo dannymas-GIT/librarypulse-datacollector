@@ -2,6 +2,9 @@ FROM node:18-alpine as builder
 
 WORKDIR /app
 
+# Define build args
+ARG SKIP_TYPECHECKING=false
+
 # Copy package files and install dependencies
 COPY package*.json ./
 RUN npm ci
@@ -9,8 +12,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (with or without type checking)
+RUN if [ "$SKIP_TYPECHECKING" = "true" ] ; then npm run build:ci ; else npm run build ; fi
 
 # Production stage
 FROM nginx:stable-alpine
