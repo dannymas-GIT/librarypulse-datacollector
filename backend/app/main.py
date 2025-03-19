@@ -7,6 +7,7 @@ from app.api.api_v1.api import api_router
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
+from app.core.rate_limit import setup_rate_limiting, limiter
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +31,13 @@ if settings.CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# Set up rate limiting
+if settings.RATE_LIMIT_ENABLED:
+    app.state.limiter = limiter
+    from slowapi import _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)

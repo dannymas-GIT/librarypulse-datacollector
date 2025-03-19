@@ -137,17 +137,50 @@ librarypulse/
    - API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
 
-### Docker Setup
+### Docker Setup (Updated)
 
-1. Build and start the containers:
+We now use a containerized approach for both development and production:
+
+1. Make sure you have Docker and Docker Compose installed.
+
+2. Build and start the containers:
    ```bash
    docker-compose up -d
    ```
 
-2. Access the application:
-   - Frontend: http://localhost
-   - API: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
+3. Access the application:
+   - Backend API: http://localhost:8001
+   - API Documentation: http://localhost:8001/docs
+   - Frontend: http://localhost:5174 (when frontend is ready)
+
+4. Run database migrations:
+   ```bash
+   docker-compose exec backend alembic upgrade head
+   ```
+
+5. To view logs:
+   ```bash
+   docker-compose logs -f
+   ```
+
+6. To stop the containers:
+   ```bash
+   docker-compose down
+   ```
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+1. **Testing**: Automatically runs tests on every push or pull request to the main or develop branches.
+2. **Building**: Builds Docker images and pushes them to GitHub Container Registry.
+3. **Deployment**: Deploys to production for changes to the main branch (when configured).
+
+See the `.github/workflows/ci-cd.yml` file for details.
+
+## Deployment Guide
+
+For production deployment, see the [deployment guide](docs/deployment.md) for detailed instructions on deploying to AWS Lightsail.
 
 ## Data Collection
 

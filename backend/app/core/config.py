@@ -17,19 +17,47 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "IMLS Library Pulse"
     API_V1_STR: str = "/api/v1"
 
+    # Logging
+    LOG_LEVEL: str = "INFO"
+    LOG_FILE: str = "logs/api.log"
+
     # CORS
-    CORS_ORIGINS: List[AnyHttpUrl] = []
+    CORS_ORIGINS: List[str] = []
 
     @field_validator("CORS_ORIGINS", mode="before")
-    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[AnyHttpUrl]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [origin.strip() for origin in v.split(",") if origin]
-        elif isinstance(v, (list, str)):
+    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str):
+            if not v or not v.strip():
+                return []
+            try:
+                # Try to parse as JSON
+                import json
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                # If not JSON, treat as comma-separated
+                return [origin.strip() for origin in v.split(",") if origin and origin.strip()]
+        elif isinstance(v, list):
             return v
-        raise ValueError(v)
+        return []
 
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "development_secret_key")
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
+    # Frontend URL for email links
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    
+    # Email settings
+    EMAILS_ENABLED: bool = os.getenv("EMAILS_ENABLED", "False").lower() == "true"
+    EMAILS_FROM_EMAIL: str = os.getenv("EMAILS_FROM_EMAIL", "noreply@librarypulse.com")
+    EMAILS_FROM_NAME: str = os.getenv("EMAILS_FROM_NAME", "Library Pulse")
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_TLS: bool = os.getenv("SMTP_TLS", "True").lower() == "true"
 
     # Database
     DATABASE_URL: PostgresDsn
@@ -49,6 +77,15 @@ class Settings(BaseSettings):
         # Create the directory if it doesn't exist
         os.makedirs(path, exist_ok=True)
         return path
+
+    # Redis Settings
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "True").lower() == "true"
+    RATE_LIMIT_DEFAULT: str = os.getenv("RATE_LIMIT_DEFAULT", "100/minute")
+    RATE_LIMIT_LOGIN: str = os.getenv("RATE_LIMIT_LOGIN", "5/minute")
+    RATE_LIMIT_REGISTER: str = os.getenv("RATE_LIMIT_REGISTER", "3/hour")
+    RATE_LIMIT_PASSWORD_RESET: str = os.getenv("RATE_LIMIT_PASSWORD_RESET", "3/hour")
+    RATE_LIMIT_EMAIL_VERIFY: str = os.getenv("RATE_LIMIT_EMAIL_VERIFY", "5/minute")
 
 
 # Create global settings instance
