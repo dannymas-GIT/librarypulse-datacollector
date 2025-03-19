@@ -19,8 +19,10 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    debug=settings.DEBUG
+    description=settings.PROJECT_DESCRIPTION,
+    version=settings.VERSION,
+    docs_url="/docs" if not settings.PRODUCTION else None,
+    redoc_url="/redoc" if not settings.PRODUCTION else None,
 )
 
 # Set up CORS middleware
@@ -43,6 +45,11 @@ if settings.RATE_LIMIT_ENABLED:
 # Add API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(health.router)
+
+# Health check endpoint
+@app.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "ok"}
 
 @app.get("/")
 def read_root():
