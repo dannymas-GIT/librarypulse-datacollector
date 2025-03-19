@@ -460,16 +460,15 @@ jobs:
             
       - name: Run Backend Smoke Tests
         run: |
-          # Start Postgres container for testing with explicit IP
-          docker inspect postgres-test --format '{{ .NetworkSettings.Networks.librarypulse-test-network.IPAddress }}'
-          POSTGRES_IP=$(docker inspect postgres-test --format '{{ .NetworkSettings.Networks.librarypulse-test-network.IPAddress }}')
+          # Start the backend container for testing with explicit host name
+          echo "Starting backend test container..."
           
-          # Start the backend container for testing with explicit DB connection
+          # Start the backend container for testing
           docker run -d \
             --name backend-test \
             --network librarypulse-test-network \
-            -e DATABASE_URL="postgresql://postgres:postgres@${POSTGRES_IP}:5432/librarypulse_test" \
-            -e TEST_DATABASE_URL="postgresql://postgres:postgres@${POSTGRES_IP}:5432/librarypulse_test" \
+            -e DATABASE_URL="postgresql://postgres:postgres@postgres-test:5432/librarypulse_test" \
+            -e TEST_DATABASE_URL="postgresql://postgres:postgres@postgres-test:5432/librarypulse_test" \
             -e REDIS_URL="redis://redis-test:6379/0" \
             -e SECRET_KEY=test_key \
             -e ENVIRONMENT=test \
