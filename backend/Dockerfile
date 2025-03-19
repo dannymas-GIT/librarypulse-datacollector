@@ -46,25 +46,22 @@ RUN pip install --no-cache /wheels/* \
 # Copy application code
 COPY --chown=appuser:appuser . .
 
-# Create a health check endpoint
-RUN echo 'from fastapi import FastAPI, APIRouter\n\
-router = APIRouter()\n\
-@router.get("/health", tags=["health"])\n\
+# Add health check endpoint directly in the main.py file
+RUN echo '\n\
+@app.get("/health")\n\
 async def health_check():\n\
     return {"status": "healthy"}\n\
-' > /app/app/api/health.py
-
-# Make sure the health check endpoint is included in the API
-RUN grep -q "from app.api import health" /app/app/api/__init__.py || \
-    echo 'from app.api import health' >> /app/app/api/__init__.py && \
-    grep -q "app.include_router(health.router)" /app/app/main.py || \
-    sed -i '/app = FastAPI/a app.include_router(health.router)' /app/app/main.py
+' >> /app/app/main.py
 
 # Switch to non-root user
 USER appuser
 
 # Expose port
 EXPOSE 8000
+
+# Health check configuration
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Command to run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
