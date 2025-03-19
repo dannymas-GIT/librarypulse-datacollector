@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
 from app.core.rate_limit import setup_rate_limiting, limiter
+from app.api import health
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +42,7 @@ if settings.RATE_LIMIT_ENABLED:
 
 # Add API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(health.router)
 
 
 @app.get("/")

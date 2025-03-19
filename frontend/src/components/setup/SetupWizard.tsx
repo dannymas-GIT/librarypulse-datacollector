@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 import { libraryConfigService, LibraryConfigCreate } from '../../services/libraryConfigService';
 import LibrarySelectionStep from './LibrarySelectionStep';
@@ -14,6 +17,14 @@ const STEPS = [
   { id: 'metrics', title: 'Select Statistics' },
   { id: 'summary', title: 'Review & Finish' }
 ];
+
+const setupSchema = z.object({
+  libraryName: z.string().min(1, 'Library name is required'),
+  state: z.string().min(1, 'State is required'),
+  year: z.string().regex(/^\d{4}$/, 'Year must be a 4-digit number'),
+});
+
+type SetupFormData = z.infer<typeof setupSchema>;
 
 const SetupWizard: React.FC = () => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -78,6 +89,19 @@ const SetupWizard: React.FC = () => {
     };
     
     createConfig(configData);
+  };
+  
+  const { register, handleSubmit: formHandleSubmit, formState: { errors } } = useForm<SetupFormData>({
+    resolver: zodResolver(setupSchema),
+  });
+
+  const onSubmit = async (data: SetupFormData) => {
+    try {
+      // TODO: Implement setup submission
+      console.log('Setup data:', data);
+    } catch (error) {
+      console.error('Setup failed:', error);
+    }
   };
   
   // Render the appropriate step
@@ -156,6 +180,64 @@ const SetupWizard: React.FC = () => {
       {/* Step content */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         {renderStep()}
+      </div>
+
+      <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-6">Library Setup</h2>
+        <form onSubmit={formHandleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <label htmlFor="libraryName" className="block text-sm font-medium text-gray-700">
+              Library Name
+            </label>
+            <input
+              {...register('libraryName')}
+              type="text"
+              id="libraryName"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+            {errors.libraryName && (
+              <p className="mt-1 text-sm text-red-600">{errors.libraryName.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+              State
+            </label>
+            <input
+              {...register('state')}
+              type="text"
+              id="state"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+            {errors.state && (
+              <p className="mt-1 text-sm text-red-600">{errors.state.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="year" className="block text-sm font-medium text-gray-700">
+              Year
+            </label>
+            <input
+              {...register('year')}
+              type="text"
+              id="year"
+              placeholder="YYYY"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+            {errors.year && (
+              <p className="mt-1 text-sm text-red-600">{errors.year.message}</p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Complete Setup
+          </button>
+        </form>
       </div>
     </div>
   );

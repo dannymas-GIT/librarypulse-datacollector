@@ -43,6 +43,9 @@ COPY --from=builder /app/wheels /wheels
 RUN pip install --no-cache /wheels/* \
     && rm -rf /wheels
 
+# Create necessary directories
+RUN mkdir -p /app/app/api && chown -R appuser:appuser /app
+
 # Copy application code
 COPY --chown=appuser:appuser app app/
 COPY --chown=appuser:appuser alembic alembic/
