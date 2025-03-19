@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.user import UserRole
 
@@ -21,9 +21,9 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
     password_confirm: str
 
-    @validator('password_confirm')
-    def passwords_match(cls, v, values, **kwargs):
-        if 'password' in values and v != values['password']:
+    @field_validator('password_confirm')
+    def passwords_match(cls, v, info):
+        if 'password' in info.data and v != info.data['password']:
             raise ValueError('Passwords do not match')
         return v
 
@@ -41,9 +41,9 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8)
     password_confirm: Optional[str] = None
 
-    @validator('password_confirm')
-    def passwords_match(cls, v, values, **kwargs):
-        if 'password' in values and values['password'] is not None and v != values['password']:
+    @field_validator('password_confirm')
+    def passwords_match(cls, v, info):
+        if 'password' in info.data and info.data['password'] is not None and v != info.data['password']:
             raise ValueError('Passwords do not match')
         return v
 
@@ -57,7 +57,7 @@ class UserInDBBase(UserBase):
     last_login: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Schema for returning user data
@@ -103,7 +103,7 @@ class UserPreferenceInDB(UserPreferenceBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Schema for returning user preferences
@@ -135,8 +135,8 @@ class PasswordReset(BaseModel):
     password: str = Field(..., min_length=8)
     password_confirm: str
 
-    @validator('password_confirm')
-    def passwords_match(cls, v, values, **kwargs):
-        if 'password' in values and v != values['password']:
+    @field_validator('password_confirm')
+    def passwords_match(cls, v, info):
+        if 'password' in info.data and v != info.data['password']:
             raise ValueError('Passwords do not match')
         return v 

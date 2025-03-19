@@ -127,21 +127,25 @@ jobs:
         cat > health_test.py << 'EOF'
         import os
         import pytest
-        from fastapi.testclient import TestClient
-
-        # Explicitly set DATABASE_URL as string before importing app
+        
+        # Set string environment variables before any imports to avoid MultiHostUrl issues
         os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
         os.environ["TEST_DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
-
+        os.environ["REDIS_URL"] = "redis://localhost:6379/0"
+        
+        # Only import FastAPI modules after setting environment variables
+        from fastapi.testclient import TestClient
         from app.main import app
 
         client = TestClient(app)
 
         def test_health():
+            """Test that the health check endpoint is working."""
             response = client.get('/health')
             assert response.status_code == 200
             assert response.json() == {"status": "healthy"}
         EOF
+        # Run with -v flag for verbose output
         python -m pytest health_test.py -v
 
   frontend-tests:
@@ -261,16 +265,18 @@ jobs:
             --name backend-test \
             --network librarypulse-test-network \
             -e DATABASE_URL="postgresql://postgres:postgres@postgres-test:5432/librarypulse_test" \
+            -e TEST_DATABASE_URL="postgresql://postgres:postgres@postgres-test:5432/librarypulse_test" \
+            -e REDIS_URL="redis://redis-test:6379/0" \
             -e SECRET_KEY=test_key \
             -e ENVIRONMENT=test \
             -p 8001:8000 \
             librarypulse-backend:test
             
-          # Wait for backend to be ready
-          timeout 60s bash -c 'until curl -s http://localhost:8001/health; do sleep 2; done'
+          # Wait for backend to be ready (with higher timeout)
+          timeout 90s bash -c 'until curl -s http://localhost:8001/health | grep -q "healthy"; do sleep 5; echo "Waiting for backend..."; done'
             
           # Test that the health endpoint is working
-          curl -s http://localhost:8001/health | grep "healthy"
+          curl -s http://localhost:8001/health | grep "healthy" && echo "Health check passed!"
           
           # Clean up containers
           docker stop backend-test postgres-test redis-test
