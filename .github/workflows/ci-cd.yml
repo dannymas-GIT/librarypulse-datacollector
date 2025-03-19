@@ -429,7 +429,8 @@ jobs:
           load: true
           build-args: |
             SKIP_TYPECHECKING=true
-            
+            VITE_API_URL=http://localhost:8000/api/v1
+
       - name: Create docker-compose test network
         run: docker network create librarypulse-test-network || true
             
@@ -545,6 +546,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             SKIP_TYPECHECKING=true
+            VITE_API_URL=http://${{ github.ref == 'refs/heads/main' && 'librarypulse.com' || 'staging.librarypulse.com' }}/api/v1
             ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
   deploy-staging:
