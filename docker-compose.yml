@@ -1,58 +1,81 @@
-version: '3.8'
+version: '3'
+
+# name: librarypulse
 
 services:
+  backend:
+    build: 
+      context: ./backend
+    restart: always
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+      - ./backend/.env.docker:/app/.env
+    networks:
+      - librarypulse-network
+
   db:
-    image: postgres:15
-    container_name: librarypulse-db
+    image: postgres:14
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: librarypulse
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=librarypulse
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - librarypulse-network
 
-  backend:
-    build:
-      context: .
-      dockerfile: docker/backend/Dockerfile
-    container_name: librarypulse-backend
+  redis:
+    image: redis:7
     restart: always
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-      - DEBUG=true
-      - ENVIRONMENT=development
-      - SECRET_KEY=4c97f952fd74b54557e6cb9341cd7378d33b2e19bcab11eb6f5cd2ca0ab21929
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:80,http://frontend
     ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
-      - data_volume:/app/data
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - librarypulse-network
 
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/frontend/Dockerfile
-    container_name: librarypulse-frontend
-    restart: always
-    depends_on:
-      - backend
-    ports:
-      - "80:80"
+  # Uncomment when frontend is ready
+  # frontend:
+  #   build: 
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   restart: always
+  #   ports:
+  #     - "5174:5173"
+  #   volumes:
+  #     - ./frontend:/app
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - librarypulse-network
 
 volumes:
   postgres_data:
-  data_volume: 
+    # name: librarypulse-postgres-data
+
+networks:
+  librarypulse-network:
+    # name: librarypulse-network
+    driver: bridge 
