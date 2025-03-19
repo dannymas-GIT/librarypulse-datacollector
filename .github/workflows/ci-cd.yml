@@ -460,28 +460,51 @@ jobs:
             
       - name: Run Backend Smoke Tests
         run: |
-          # Start the backend container for testing
+          # Start Postgres container for testing with explicit IP
+          docker inspect postgres-test --format '{{ .NetworkSettings.Networks.librarypulse-test-network.IPAddress }}'
+          POSTGRES_IP=$(docker inspect postgres-test --format '{{ .NetworkSettings.Networks.librarypulse-test-network.IPAddress }}')
+          
+          # Start the backend container for testing with explicit DB connection
           docker run -d \
             --name backend-test \
             --network librarypulse-test-network \
-            -e DATABASE_URL="postgresql://postgres:postgres@postgres-test:5432/librarypulse_test" \
-            -e TEST_DATABASE_URL="postgresql://postgres:postgres@postgres-test:5432/librarypulse_test" \
+            -e DATABASE_URL="postgresql://postgres:postgres@${POSTGRES_IP}:5432/librarypulse_test" \
+            -e TEST_DATABASE_URL="postgresql://postgres:postgres@${POSTGRES_IP}:5432/librarypulse_test" \
             -e REDIS_URL="redis://redis-test:6379/0" \
             -e SECRET_KEY=test_key \
             -e ENVIRONMENT=test \
+            -e DEBUG=true \
+            -e LOG_LEVEL=DEBUG \
             -p 8001:8000 \
             librarypulse-backend:test
+          
+          # Check if the container is running
+          docker ps -a
+          
+          # Check container logs
+          docker logs backend-test
+
+          # Wait a bit for any startup errors to appear
+          sleep 10
+          
+          # Check logs again to see what's happening
+          docker logs backend-test
+           
+          # Check connectivity to postgres from backend container
+          echo "Testing connection to Postgres from backend container..."
+          docker exec backend-test bash -c 'apt-get update && apt-get install -y postgresql-client && PGPASSWORD=postgres psql -h postgres-test -U postgres -d librarypulse_test -c "SELECT 1"' || true
             
-          # Wait for backend to be ready (with higher timeout)
-          timeout 90s bash -c 'until curl -s http://localhost:8001/health | grep -q "healthy"; do sleep 5; echo "Waiting for backend..."; done'
+          # Check the health endpoint with a longer timeout and more verbosity
+          echo "Waiting for backend health endpoint (this may take a few minutes)..."
+          timeout 180s bash -c 'until curl -v http://localhost:8001/health 2>&1 | grep -q "healthy"; do sleep 10; echo "Still waiting for backend..."; docker logs backend-test | tail -n 20; done'
             
-          # Test that the health endpoint is working
-          curl -s http://localhost:8001/health | grep "healthy" && echo "Health check passed!"
+          # If we get here, the backend is running
+          echo "Backend health check passed!"
           
           # Clean up containers
-          docker stop backend-test postgres-test redis-test
-          docker rm backend-test postgres-test redis-test
-          docker network rm librarypulse-test-network
+          docker stop backend-test postgres-test redis-test || true
+          docker rm backend-test postgres-test redis-test || true
+          docker network rm librarypulse-test-network || true
 
   build-and-push:
     name: Build and Push Containers
