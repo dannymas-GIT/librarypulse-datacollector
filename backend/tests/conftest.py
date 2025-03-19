@@ -6,14 +6,15 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 from typing import Generator, AsyncGenerator
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 
 from fastapi import FastAPI
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from app.core.config import settings, Settings
 from app.db.base import Base
-from app.db.session import SessionLocal, engine
+from app.db.session import SessionLocal, engine, get_db
 from app.main import app
 from app.api.deps import get_db
 
@@ -36,6 +37,18 @@ app.state.settings = test_settings
 # Test database URL
 TEST_DATABASE_URL = settings.TEST_DATABASE_URL
 
+# Create in-memory SQLite database for testing
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+test_engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+# Create tables
+Base.metadata.create_all(bind=test_engine)
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator:
     loop = asyncio.get_event_loop_policy().new_event_loop()
@@ -56,7 +69,7 @@ async def db_engine():
     await engine.dispose()
 
 @pytest.fixture
-async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
+async def async_db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
     async_session = sessionmaker(
         db_engine, class_=AsyncSession, expire_on_commit=False
     )
@@ -64,16 +77,35 @@ async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 @pytest.fixture
-async def client(db_session) -> Generator:
-    async def override_get_db():
+def db_session():
+    """Fixture that provides a test database session."""
+    connection = test_engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
+    
+    # Return the session to the test
+    yield session
+    
+    # Clean up after the test
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+@pytest.fixture
+def client(db_session):
+    """Fixture that provides a test client with overridden dependencies."""
+    def override_get_db():
         try:
             yield db_session
         finally:
-            await db_session.close()
+            pass
     
     app.dependency_overrides[get_db] = override_get_db
+    
     with TestClient(app) as test_client:
         yield test_client
+    
+    # Clean up after the test
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="module")

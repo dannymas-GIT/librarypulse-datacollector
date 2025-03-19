@@ -44,12 +44,11 @@ if settings.RATE_LIMIT_ENABLED:
 
 # Add API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
-app.include_router(health.router)
 
 # Health check endpoint
 @app.get("/health", tags=["health"])
 async def health_check():
-    return {"status": "ok"}
+    return {"status": "healthy"}
 
 @app.get("/")
 def read_root():
