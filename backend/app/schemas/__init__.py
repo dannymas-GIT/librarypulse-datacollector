@@ -10,4 +10,18 @@ from app.schemas.pls_data import (
     PLSDatasetUpdate,
     LibraryUpdate,
     LibraryOutletUpdate
+)
+
+from app.schemas.user import (
+    User,
+    UserCreate,
+    UserUpdate,
+    UserDetail,
+    UserPreference,
+    UserPreferenceCreate,
+    UserPreferenceUpdate,
+    Token,
+    TokenPayload,
+    PasswordResetRequest,
+    PasswordReset
 ) 

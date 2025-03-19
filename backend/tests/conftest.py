@@ -7,17 +7,34 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from app.core.config import settings
+from app.core.config import settings, Settings
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
 from app.main import app
 
+# Test settings
+test_settings = Settings(
+    DATABASE_URL="postgresql://postgres:postgres@localhost:5432/librarypulse_test",
+    TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/librarypulse_test",
+    SECRET_KEY="test_secret_key",
+    ACCESS_TOKEN_EXPIRE_MINUTES=5,
+    EMAILS_ENABLED=False,
+    CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"],
+    DEBUG=True,
+    ENVIRONMENT="test",
+    REDIS_URL="redis://localhost:6379/1"
+)
+
+# Override settings in app
+app.state.settings = test_settings
+
+# Create test database engine
+engine = create_engine(str(test_settings.TEST_DATABASE_URL))
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="session")
 def db_engine():
     """Create a test database engine."""
-    test_db_url = settings.TEST_DATABASE_URL or settings.DATABASE_URL
-    engine = create_engine(str(test_db_url))
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
@@ -28,16 +45,20 @@ def db(db_engine) -> Generator[Session, None, None]:
     """Create a test database session."""
     connection = db_engine.connect()
     transaction = connection.begin()
-    
-    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=connection)
-    db = TestSessionLocal()
+    session = TestingSessionLocal(bind=connection)
     
     try:
-        yield db
+        yield session
     finally:
-        db.close()
+        session.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(app) as c:
+        yield c
 
 
 @pytest.fixture(scope="function")

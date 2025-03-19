@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Date, Text, Enum
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Date, Text, Enum, UniqueConstraint, ForeignKeyConstraint
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import and_
 
 from app.db.base import Base, IDMixin, TimestampMixin
 
@@ -14,9 +15,7 @@ class PLSDataset(Base, IDMixin, TimestampMixin):
     record_count = Column(Integer, nullable=True)
     notes = Column(Text, nullable=True)
     
-    # Relationships
-    libraries = relationship("Library", back_populates="dataset", cascade="all, delete-orphan")
-    outlets = relationship("LibraryOutlet", back_populates="dataset", cascade="all, delete-orphan")
+    # Relationships - these will be defined after the other classes
 
 
 class Library(Base, IDMixin, TimestampMixin):
@@ -26,6 +25,10 @@ class Library(Base, IDMixin, TimestampMixin):
     
     dataset_id = Column(Integer, ForeignKey("pls_datasets.id", ondelete="CASCADE"), nullable=False, index=True)
     library_id = Column(String(20), nullable=False, index=True)  # FSCSKEY
+    
+    __table_args__ = (
+        UniqueConstraint('dataset_id', 'library_id', name='uix_library_dataset_library_id'),
+    )
     
     # Library info
     name = Column(String(255), nullable=False)
@@ -98,9 +101,7 @@ class Library(Base, IDMixin, TimestampMixin):
     hours_open = Column(Integer, nullable=True)  # Annual
     weeks_open = Column(Integer, nullable=True)  # Annual
     
-    # Relationships
-    dataset = relationship("PLSDataset", back_populates="libraries")
-    outlets = relationship("LibraryOutlet", back_populates="library", cascade="all, delete-orphan")
+    # Relationships - these will be defined after the LibraryOutlet class
 
 
 class LibraryOutlet(Base, IDMixin, TimestampMixin):
@@ -109,8 +110,16 @@ class LibraryOutlet(Base, IDMixin, TimestampMixin):
     __tablename__ = "library_outlets"
     
     dataset_id = Column(Integer, ForeignKey("pls_datasets.id", ondelete="CASCADE"), nullable=False, index=True)
-    library_id = Column(String(20), ForeignKey("libraries.library_id"), nullable=False, index=True)
+    library_id = Column(String(20), nullable=False, index=True)
     outlet_id = Column(String(20), nullable=False, index=True)  # FSCS_SEQ
+    
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['dataset_id', 'library_id'],
+            ['libraries.dataset_id', 'libraries.library_id'],
+            ondelete="CASCADE"
+        ),
+    )
     
     # Outlet info
     name = Column(String(255), nullable=False)
@@ -135,7 +144,15 @@ class LibraryOutlet(Base, IDMixin, TimestampMixin):
     
     # Outlet statistics (if available separately)
     square_footage = Column(Integer, nullable=True)
-    
-    # Relationships
-    dataset = relationship("PLSDataset", back_populates="outlets")
-    library = relationship("Library", back_populates="outlets") 
+
+
+# Define relationships after all classes are defined
+PLSDataset.libraries = relationship("Library", back_populates="dataset", cascade="all, delete-orphan")
+PLSDataset.outlets = relationship("LibraryOutlet", back_populates="dataset", cascade="all, delete-orphan")
+
+Library.dataset = relationship("PLSDataset", back_populates="libraries")
+Library.outlets = relationship("LibraryOutlet", back_populates="library", cascade="all, delete-orphan")
+Library.users = relationship("User", back_populates="library")
+
+LibraryOutlet.dataset = relationship("PLSDataset", back_populates="outlets")
+LibraryOutlet.library = relationship("Library", back_populates="outlets") 
