@@ -24,4 +24,27 @@ describe('Card Component', () => {
     const cardElement = container.firstChild;
     expect(cardElement).toHaveClass('test-class');
   });
+  
+  it('renders title and subtitle', () => {
+    render(
+      <Card title="Card Title" subtitle="Card Subtitle">
+        <div>Test Content</div>
+      </Card>
+    );
+    
+    expect(screen.getByText('Card Title')).toBeInTheDocument();
+    expect(screen.getByText('Card Subtitle')).toBeInTheDocument();
+  });
+  
+  it('renders with footer', () => {
+    render(
+      <Card 
+        footer={<div>Footer Content</div>}
+      >
+        <div>Test Content</div>
+      </Card>
+    );
+    
+    expect(screen.getByText('Footer Content')).toBeInTheDocument();
+  });
 }); 
