@@ -1,3 +1,16 @@
+/// <reference types="react" />
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      div: React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
+      span: React.DetailedHTMLProps<React.HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>;
+      p: React.DetailedHTMLProps<React.HTMLAttributes<HTMLParagraphElement>, HTMLParagraphElement>;
+      // Add other HTML elements as needed
+    }
+  }
+}
+
 // Allow any element name in JSX
 declare namespace JSX {
   interface IntrinsicElements {
@@ -192,9 +205,10 @@ declare module 'react-router-dom' {
   export function Route(props: any): JSX.Element;
   export function Link(props: any): JSX.Element;
   export function NavLink(props: any): JSX.Element;
+  export function Navigate(props: { to: string; replace?: boolean; state?: any }): JSX.Element;
   export function Outlet(props: any): JSX.Element;
   export function useParams(): Record<string, string>;
-  export function useNavigate(): (path: string) => void;
+  export function useNavigate(): (path: string, options?: { replace?: boolean; state?: any }) => void;
   export function useLocation(): { pathname: string; search: string; hash: string; state: any };
 }
 
@@ -235,6 +249,8 @@ declare module '@tanstack/react-query-devtools' {
 
 declare module 'lucide-react' {
   export const AlertCircle: React.FC<any>;
+  export const CheckCircle: React.FC<any>;
+  export const XCircle: React.FC<any>;
   export const Home: React.FC<any>;
   export const Library: React.FC<any>;
   export const BarChart: React.FC<any>;

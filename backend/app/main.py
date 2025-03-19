@@ -44,7 +44,6 @@ if settings.RATE_LIMIT_ENABLED:
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(health.router)
 
-
 @app.get("/")
 def read_root():
     """Root endpoint that provides basic API information."""
@@ -55,13 +54,6 @@ def read_root():
         "docs_url": "/docs",
         "environment": settings.ENVIRONMENT
     }
-
-
-@app.get("/health")
-def health_check():
-    """Health check endpoint."""
-    return {"status": "ok"}
-
 
 if __name__ == "__main__":
     import uvicorn

@@ -43,25 +43,14 @@ COPY --from=builder /app/wheels /wheels
 RUN pip install --no-cache /wheels/* \
     && rm -rf /wheels
 
-# Create necessary directories
-RUN mkdir -p /app/app/api && chown -R appuser:appuser /app
+# Create necessary directories and set permissions
+RUN mkdir -p /app/app/api /app/logs \
+    && chown -R appuser:appuser /app
 
 # Copy application code
 COPY --chown=appuser:appuser app app/
 COPY --chown=appuser:appuser alembic alembic/
 COPY --chown=appuser:appuser alembic.ini .
-
-# Create health check endpoint
-RUN echo 'from fastapi import APIRouter\n\
-router = APIRouter()\n\
-\n\
-@router.get("/health")\n\
-async def health_check():\n\
-    return {"status": "healthy"}\n\
-' > /app/app/api/health.py
-
-# Update main.py to include health check
-RUN echo '\nfrom app.api import health\napp.include_router(health.router)\n' >> /app/app/main.py
 
 # Switch to non-root user
 USER appuser

@@ -1,58 +1,31 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Card } from '@/components/common/Card';
 
-export const TermsPage: React.FC = () => {
+const TermsPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Terms of Service</h1>
-        
-        <div className="bg-white p-8 rounded-lg shadow">
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">1. Acceptance of Terms</h2>
-            <p className="text-gray-700 mb-4">
-              By accessing and using LibraryPulse, you agree to be bound by these Terms of Service
-              and all applicable laws and regulations.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">2. Use License</h2>
-            <p className="text-gray-700 mb-4">
-              Permission is granted to temporarily access LibraryPulse for personal,
-              non-commercial use. This is the grant of a license, not a transfer of title.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">3. Data Privacy</h2>
-            <p className="text-gray-700 mb-4">
-              We are committed to protecting your privacy. Please review our Privacy Policy
-              to understand how we collect, use, and protect your data.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">4. Disclaimer</h2>
-            <p className="text-gray-700 mb-4">
-              The materials on LibraryPulse are provided on an 'as is' basis. LibraryPulse
-              makes no warranties, expressed or implied, and hereby disclaims and negates
-              all other warranties including, without limitation, implied warranties or
-              conditions of merchantability, fitness for a particular purpose, or
-              non-infringement of intellectual property or other violation of rights.
-            </p>
-          </section>
+    <div className="container mx-auto px-4 py-8">
+      <Card>
+        <h1 className="text-3xl font-bold mb-6">Terms of Service</h1>
+        <div className="prose max-w-none">
+          <p className="mb-4">
+            Welcome to Library Pulse. By using this application, you agree to these terms.
+          </p>
+          <h2 className="text-2xl font-semibold mt-6 mb-4">1. Acceptance of Terms</h2>
+          <p className="mb-4">
+            By accessing and using Library Pulse, you accept and agree to be bound by the terms and conditions of this agreement.
+          </p>
+          <h2 className="text-2xl font-semibold mt-6 mb-4">2. Use License</h2>
+          <p className="mb-4">
+            Permission is granted to temporarily access Library Pulse for personal, non-commercial use only.
+          </p>
+          <h2 className="text-2xl font-semibold mt-6 mb-4">3. Disclaimer</h2>
+          <p className="mb-4">
+            The materials on Library Pulse are provided on an 'as is' basis. Library Pulse makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+          </p>
         </div>
-
-        <div className="mt-8 text-center">
-          <Link
-            to="/"
-            className="text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Return to Home
-          </Link>
-        </div>
-      </div>
+      </Card>
     </div>
   );
-}; 
+};
+
+export default TermsPage; 

@@ -25,13 +25,29 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["vite/client", "node", "@types/react", "@types/react-dom"],
+    "types": [
+      "vite/client",
+      "node",
+      "react",
+      "react-dom",
+      "jest",
+      "@testing-library/jest-dom"
+    ],
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "jsxImportSource": "react"
+    "jsxImportSource": "react",
+    
+    /* Additional JSX settings */
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*", "src/types.d.ts"],
+  "include": [
+    "src/**/*",
+    "src/types.d.ts",
+    "src/types/**/*.ts",
+    "src/types/**/*.tsx",
+    "src/setupTests.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 

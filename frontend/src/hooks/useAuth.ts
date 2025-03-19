@@ -1,67 +1,47 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-
-interface LoginData {
-  email: string;
-  password: string;
-}
-
-interface AuthResponse {
-  access_token: string;
-  token_type: string;
-}
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 interface User {
-  id: number;
+  id: string;
   email: string;
-  is_active: boolean;
+  isAdmin: boolean;
 }
 
-export const useAuth = () => {
-  const { data: user, isLoading } = useQuery<User>({
-    queryKey: ['user'],
+interface AuthState {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  user: User | null;
+}
+
+export const useAuth = (): AuthState => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['auth'],
     queryFn: async () => {
-      try {
-        const response = await api.get('/api/v1/users/me');
-        return response.data;
-      } catch (error) {
-        return null;
+      const response = await fetch('/api/v1/auth/me');
+      if (!response.ok) {
+        throw new Error('Not authenticated');
       }
+      return response.json();
     },
+    retry: false,
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginData) => {
-      const formData = new URLSearchParams();
-      formData.append('username', data.email);
-      formData.append('password', data.password);
-
-      const response = await api.post<AuthResponse>(
-        '/api/v1/auth/login',
-        formData.toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-
-      const { access_token } = response.data;
-      localStorage.setItem('token', access_token);
-      return response.data;
-    },
-  });
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  };
+  useEffect(() => {
+    if (data) {
+      setUser(data);
+      setIsAuthenticated(true);
+    } else {
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  }, [data]);
 
   return {
-    user,
+    isAuthenticated,
     isLoading,
-    isAuthenticated: !!user,
-    login: loginMutation.mutateAsync,
-    logout,
+    user,
   };
 }; 
