@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    image: library-lens-backend:test
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-test:5432/library_lens_test
+      - TEST_DATABASE_URL=postgresql://postgres:postgres@postgres-test:5432/library_lens_test
+      - REDIS_URL=redis://redis-test:6379/0
+      - SECRET_KEY=test_secret_key
+      - ENVIRONMENT=test
+    ports:
+      - "8000:8000"
+    networks:
+      - library-lens-test-network
+
+  frontend:
+    image: library-lens-frontend:test
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+      - NODE_ENV=test
+    ports:
+      - "3000:80"
+    networks:
+      - library-lens-test-network
+
+  mock-services:
+    image: library-lens-mock:test
+    environment:
+      - NODE_ENV=test
+    ports:
+      - "3001:3000"
+    networks:
+      - library-lens-test-network
+
+  landing-page:
+    image: library-lens-landing:test
+    environment:
+      - NODE_ENV=test
+    ports:
+      - "3002:3000"
+    networks:
+      - library-lens-test-network
+
+networks:
+  library-lens-test-network:
+    external: true 

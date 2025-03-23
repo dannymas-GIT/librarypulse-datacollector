@@ -6,12 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:ci": "tsc --project tsconfig.ci.json || true && vite build --emptyOutDir",
+    "build:ci": "vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "test:ci": "jest --passWithNoTests"
+    "test:ci": "jest --passWithNoTests",
+    "ci": "./run-build.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",

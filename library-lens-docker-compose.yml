@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: library-lens-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/proxy.conf:/etc/nginx/proxy.conf:ro
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - frontend
+      - backend
+      - mock-services
+      - landing-page
+    networks:
+      - library-lens-network
+
+  # Frontend application
+  frontend:
+    image: ${REGISTRY:-ghcr.io/yourusername}/library-lens-frontend:${TAG:-latest}
+    container_name: library-lens-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+        - ENVIRONMENT=${ENVIRONMENT:-production}
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - library-lens-network
+
+  # Backend API
+  backend:
+    image: ${REGISTRY:-ghcr.io/yourusername}/library-lens-backend:${TAG:-latest}
+    container_name: library-lens-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=postgresql://postgres:postgres@db:5432/library_lens
+        - ENVIRONMENT=${ENVIRONMENT:-production}
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/library_lens
+      - TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/library_lens_test
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-supersecretkey}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - ALLOWED_ORIGINS=http://localhost,https://library-lens.com
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./extracted_data:/app/extracted_data
+    depends_on:
+      - db
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - library-lens-network
+
+  # Mock services for switch, backup, sonicwall
+  mock-services:
+    image: ${REGISTRY:-ghcr.io/yourusername}/library-lens-mock:${TAG:-latest}
+    container_name: library-lens-mock
+    build:
+      context: ./mock-services
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=${ENVIRONMENT:-production}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - library-lens-network
+
+  # Landing page
+  landing-page:
+    image: ${REGISTRY:-ghcr.io/yourusername}/library-lens-landing:${TAG:-latest}
+    container_name: library-lens-landing
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=${ENVIRONMENT:-production}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - library-lens-network
+
+  # Database
+  db:
+    image: postgres:15-alpine
+    container_name: library-lens-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=library_lens
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - library-lens-network
+
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: library-lens-redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - library-lens-network
+
+  # Certbot for SSL certificates
+  certbot:
+    image: certbot/certbot
+    container_name: library-lens-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - nginx
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  postgres_data:
+    name: library-lens-postgres-data
+  redis_data:
+    name: library-lens-redis-data
+
+networks:
+  library-lens-network:
+    name: library-lens-network
+    driver: bridge 

@@ -1,0 +1,432 @@
+name: Library-Lens CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'mock-services/**'
+      - 'landing/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'mock-services/**'
+      - 'landing/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  security-events: write
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: library_lens_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio
+        
+    - name: Create logs directory
+      run: |
+        mkdir -p backend/logs
+        
+    - name: Run backend tests
+      env:
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/library_lens_test"
+        TEST_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/library_lens_test"
+        REDIS_URL: "redis://localhost:6379/0"
+        SECRET_KEY: test_secret_key
+        ENVIRONMENT: test
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        cd backend
+        python -m pytest tests/ -v
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    env:
+      SKIP_TYPECHECKING: "true"
+      CI: "true"
+      NODE_OPTIONS: "--max-old-space-size=4096"
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+          
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm run test
+
+  mock-services-tests:
+    name: Mock Services Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: mock-services/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd mock-services
+          npm ci
+          
+      - name: Run mock services tests
+        run: |
+          cd mock-services
+          npm run test
+
+  landing-page-tests:
+    name: Landing Page Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: landing/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd landing
+          npm ci
+          
+      - name: Run landing page tests
+        run: |
+          cd landing
+          npm run test
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'  # Don't fail the build for now
+          severity: 'CRITICAL,HIGH'
+
+  docker-build:
+    name: Docker Build
+    needs: [backend-tests, frontend-tests, mock-services-tests, landing-page-tests, security-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: library-lens-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+          build-args: |
+            DATABASE_URL=postgresql://postgres:postgres@postgres-test:5432/library_lens_test
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: false
+          tags: library-lens-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+          build-args: |
+            SKIP_TYPECHECKING=true
+            VITE_API_URL=http://localhost:8000/api/v1
+
+      - name: Build mock services image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mock-services
+          push: false
+          tags: library-lens-mock:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+
+      - name: Build landing page image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./landing
+          push: false
+          tags: library-lens-landing:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+
+      - name: Create test network
+        run: docker network create library-lens-test-network || true
+            
+      - name: Start test containers
+        run: |
+          # Start Postgres
+          docker run -d \
+            --name postgres-test \
+            --network library-lens-test-network \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=library_lens_test \
+            postgres:15-alpine
+
+          # Start Redis
+          docker run -d \
+            --name redis-test \
+            --network library-lens-test-network \
+            redis:7-alpine
+
+          # Wait for services to be ready
+          timeout 30s bash -c 'until docker exec postgres-test pg_isready -U postgres; do sleep 1; done'
+            
+      - name: Run integration tests
+        run: |
+          # Start all services
+          docker compose -f docker-compose.test.yml up -d
+          
+          # Wait for services to be ready
+          sleep 30
+          
+          # Test health endpoints
+          curl -f http://localhost:8000/health
+          curl -f http://localhost:3000/health
+          curl -f http://localhost:3001/health  # Mock services
+          curl -f http://localhost:3002/health  # Landing page
+
+  build-and-push:
+    name: Build and Push Containers
+    needs: [docker-build]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata for images
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/mock-services
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/landing
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      
+      - name: Build and push all images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+  deploy:
+    name: Deploy to Production
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+        
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Deploy to Production Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Update the deployment
+            cd /opt/docker-apps/library-lens
+            
+            # Backup current deployment state
+            if [ -f docker-compose.yml ]; then
+              cp docker-compose.yml docker-compose.yml.backup
+            fi
+            
+            if [ -f .env ]; then
+              cp .env .env.backup
+            fi
+            
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull the latest images
+            docker compose pull
+            
+            # Update the environment file
+            cat > .env << 'EOF'
+            DATABASE_URL=postgresql://postgres:postgres@db:5432/library_lens
+            SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}
+            ENVIRONMENT=production
+            EOF
+            
+            # Restart the services
+            docker compose up -d
+            
+            # Clean up old images
+            docker system prune -f
+      
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Wait for services to be ready
+            sleep 45
+            
+            # Check all services
+            curl -f http://localhost:8000/health  # Backend
+            curl -f http://localhost:3000/health  # Frontend
+            curl -f http://localhost:3001/health  # Mock services
+            curl -f http://localhost:3002/health  # Landing page
+            
+            echo "Deployment verified successfully!"
+      
+      - name: Rollback on Failure
+        if: failure()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /opt/docker-apps/library-lens
+            
+            echo "Deployment verification failed! Rolling back..."
+            
+            if [ -f docker-compose.yml.backup ]; then
+              cp docker-compose.yml.backup docker-compose.yml
+            fi
+            
+            if [ -f .env.backup ]; then
+              cp .env.backup .env
+            fi
+            
+            docker compose down
+            docker compose up -d
+            
+            echo "Rollback complete." 

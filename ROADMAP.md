@@ -1,132 +1,122 @@
-# Library Pulse Roadmap
+# Library-Lens Integration Roadmap
 
-This document outlines the planned features and development roadmap for the Library Pulse project.
+## Overview
 
-## Current Status
+This roadmap outlines the plan to integrate the LibraryPulse datacollector project into the larger Library-Lens umbrella. The goal is to create a unified architecture that will be deployed at `/opt/docker-apps/library-lens` on the Lightsail server.
 
-The Library Pulse application currently provides:
+## Current State
 
-- Data collection from Public Libraries Survey (PLS) datasets
-- Library demographic data visualization
-- Comparison of library statistics across different libraries
-- Historical trend analysis for library metrics
-- Setup wizard for initial configuration
+- LibraryPulse datacollector: Standalone application with frontend and backend components
+- Existing components (switch, backup, sonicwall): Will be replaced with mock data implementations
 
-## Roadmap
+## Target Architecture
 
-### Phase 1: Core Functionality (Completed)
-- ✅ Data import from PLS datasets
-- ✅ Basic library statistics visualization
-- ✅ Library comparison functionality
-- ✅ Historical trends analysis
-- ✅ Setup wizard for initial configuration
+```
+/opt/docker-apps/library-lens/
+├── nginx/                    # Central reverse proxy configuration
+├── frontend/                 # Main frontend application (React)
+├── backend/                  # Main backend API (FastAPI)
+├── data/                     # Shared data storage
+├── postgres/                 # Database data
+├── redis/                    # Redis data
+├── docker-compose.yml        # Unified docker compose file
+└── .env                      # Environment configuration
+```
 
-### Phase 2: User Management (In Progress)
-- ✅ Database models for user management
-- ✅ Authentication API endpoints
-  - ✅ User registration
-  - ✅ User login/logout
-  - ✅ Password reset
-  - ✅ Email verification
-- ✅ User management API endpoints
-  - ✅ User profile management
-  - ✅ User preferences
-  - ✅ Admin user management
-- ⬜ User management UI
-  - ⬜ Login page
-  - ⬜ Registration page
-  - ⬜ User profile page
-  - ⬜ Password reset page
-- ⬜ Role-based access control implementation
-  - ⬜ Admin role
-  - ⬜ Librarian role
-  - ⬜ Analyst role
-  - ⬜ Regular user role
-- ⬜ User preferences UI
-  - ⬜ Theme selection
-  - ⬜ Default library selection
-  - ⬜ Dashboard layout customization
+## Integration Phases
 
-### Phase 3: Enhanced Analytics
-- ⬜ Advanced data visualization
-- ⬜ Custom report generation
-- ⬜ Data export functionality
-- ⬜ Predictive analytics
-- ⬜ Benchmark comparisons
+### Phase 1: Repository Restructuring (Current)
 
-### Phase 4: Collaboration Features
-- ⬜ Shared dashboards
-- ⬜ Comments and annotations
-- ⬜ Team workspaces
-- ⬜ Notification system
+- [x] Develop CI/CD pipeline for automated testing and deployment
+- [ ] Create a unified GitHub repository structure
+- [ ] Set up main docker-compose.yml for all components
+- [ ] Configure central nginx reverse proxy
 
-### Phase 5: Integration and Expansion
-- ⬜ API for third-party integration
-- ⬜ Mobile application
-- ⬜ Integration with other library systems
-- ⬜ Support for international library data
+### Phase 2: Application Integration (Next)
 
-## Implementation Details
+- [ ] Integrate LibraryPulse datacollector backend
+- [ ] Integrate LibraryPulse datacollector frontend
+- [ ] Implement mock data for switch, backup, and sonicwall components
+- [ ] Create a unified landing page
 
-### User Management Implementation
+### Phase 3: Authentication & Authorization
 
-The user management system provides secure authentication and authorization for the Library Pulse application. It includes:
+- [ ] Implement central authentication system
+- [ ] Set up role-based access control
+- [ ] Create user management interface
 
-1. **Database Models** (Completed):
-   - User model with roles and permissions
-   - User session management
-   - User preferences storage
+### Phase 4: Deployment & Infrastructure
 
-2. **Authentication System** (Completed):
-   - JWT-based authentication
-   - Secure password hashing
-   - Session management
-   - Password reset functionality
-   - Email verification
+- [ ] Set up AWS Lightsail instance
+- [ ] Configure domain and SSL certificates
+- [ ] Implement database backup system
+- [ ] Set up monitoring and alerting
 
-3. **User Interface** (Next Steps):
-   - Modern, responsive login/registration forms
-   - User profile management
-   - Role-specific dashboards and views
+### Phase 5: Documentation & Refinement
 
-4. **Security Features** (Implemented):
-   - CSRF protection
-   - Rate limiting
-   - Input validation
-   - Secure password policies
-   - Session timeout and management
+- [ ] Create user documentation
+- [ ] Develop technical documentation
+- [ ] Optimize performance
+- [ ] Implement analytics
 
-## Next Steps (Immediate)
+## Deployment Plan
 
-1. **Frontend Authentication Components**:
-   - Create login page with JWT token handling
-   - Implement registration form with validation
-   - Build password reset request and confirmation pages
-   - Design email verification confirmation page
+### AWS Lightsail Setup
 
-2. **Frontend User Management**:
-   - Develop user profile page
-   - Create user preferences management interface
-   - Build admin user management dashboard
+1. Create a Lightsail instance with at least:
+   - 4GB RAM
+   - 80GB SSD
+   - Ubuntu 22.04 LTS
 
-3. **Role-Based Access Control**:
-   - Implement frontend route protection
-   - Create role-specific navigation and UI elements
-   - Add permission checks to relevant components
+2. Configure networking:
+   - Static IP address
+   - Domain name configuration
+   - Open ports: 22 (SSH), 80 (HTTP), 443 (HTTPS)
 
-4. **Integration Testing**:
-   - Test authentication flow end-to-end
-   - Verify user management functionality
-   - Validate role-based access restrictions
+3. Install requirements:
+   - Docker and Docker Compose
+   - Nginx
+   - Certbot for SSL
+
+### Deployment Architecture
+
+```
+                                  ┌──────────────┐
+                                  │     Nginx    │
+                                  │  Reverse Proxy│
+                                  └───────┬──────┘
+                                          │
+                 ┌──────────────┬─────────┴───────┬──────────────┐
+                 │              │                 │              │
+        ┌────────▼─────┐ ┌──────▼───────┐ ┌───────▼──────┐ ┌────▼─────────┐
+        │   Frontend   │ │ Data Backend │ │ Mock Services│ │ Landing Page │
+        └────────┬─────┘ └──────┬───────┘ └───────┬──────┘ └──────────────┘
+                 │              │                 │
+                 └──────────────┼─────────────────┘
+                                │
+                      ┌─────────▼────────┐
+                      │                  │
+                      │    PostgreSQL    │
+                      │                  │
+                      └──────────────────┘
+```
+
+## Next Steps & Tasks
+
+1. Create a new docker-compose.yml for the unified architecture
+2. Set up a central Nginx configuration
+3. Migrate backend services to the new structure
+4. Develop a unified frontend interface
+5. Test local deployment
+6. Prepare AWS Lightsail environment
+7. Deploy to production
 
 ## Timeline
 
-- **Phase 2 (User Management)**: Q2 2025
-  - Backend API (Completed)
-  - Frontend Implementation (In Progress)
-  - Testing and Refinement (Upcoming)
-- **Phase 3 (Enhanced Analytics)**: Q3 2025
-- **Phase 4 (Collaboration Features)**: Q4 2025
-- **Phase 5 (Integration and Expansion)**: Q1-Q2 2026
+- Phase 1: 1-2 weeks
+- Phase 2: 2-3 weeks
+- Phase 3: 2 weeks
+- Phase 4: 1 week
+- Phase 5: 1-2 weeks
 
-This roadmap is subject to change based on user feedback and project priorities. 
+Total estimated time: 7-10 weeks 

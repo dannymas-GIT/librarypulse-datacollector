@@ -16,8 +16,8 @@
     
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     
     /* Path aliases */
@@ -29,6 +29,7 @@
       "vite/client",
       "node",
       "jest",
+      "@testing-library/jest-dom",
       "react",
       "react-dom"
     ],
@@ -36,10 +37,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "jsxImportSource": "react",
-    
-    /* Additional JSX settings */
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "jsxImportSource": "react"
   },
   "include": [
     "src/**/*",

@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Any, Dict
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, status, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -181,4 +181,50 @@ def reset_password_endpoint(
             detail="Invalid or expired reset token",
         )
     
-    return user 
+    return user
+
+
+@router.get("/verify")
+async def verify_token(
+    authorization: str = Header(None),
+    x_original_uri: str = Header(None, alias="X-Original-URI"),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """
+    Verify JWT token for nginx auth_request.
+    This endpoint is called by nginx to verify authentication status.
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No authorization token provided",
+        )
+
+    try:
+        # Extract token from Bearer header
+        scheme, token = authorization.split()
+        if scheme.lower() != 'bearer':
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication scheme",
+            )
+
+        # Verify token and get user
+        user = get_current_user(db, token)
+        
+        # Check if user has access to the requested URI
+        if x_original_uri:
+            # Add any specific path-based authorization logic here
+            if x_original_uri.startswith('/app/admin/') and not user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied",
+                )
+
+        return {"status": "ok", "user_id": user.id}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+        ) 

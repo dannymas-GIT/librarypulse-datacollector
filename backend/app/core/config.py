@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     DEBUG: bool = False
     ENVIRONMENT: str = "production"
+    PRODUCTION: bool = False
     PROJECT_NAME: str = "IMLS Library Pulse"
     PROJECT_DESCRIPTION: str = "API for the IMLS Library Pulse project"
     VERSION: str = "0.1.0"
@@ -88,6 +89,12 @@ class Settings(BaseSettings):
     RATE_LIMIT_REGISTER: str = os.getenv("RATE_LIMIT_REGISTER", "3/hour")
     RATE_LIMIT_PASSWORD_RESET: str = os.getenv("RATE_LIMIT_PASSWORD_RESET", "3/hour")
     RATE_LIMIT_EMAIL_VERIFY: str = os.getenv("RATE_LIMIT_EMAIL_VERIFY", "5/minute")
+
+    @field_validator("ENVIRONMENT", mode="after")
+    def set_production(cls, v: str, info) -> str:
+        if v and v.lower() == "production":
+            info.data["PRODUCTION"] = True
+        return v
 
 
 # Create global settings instance

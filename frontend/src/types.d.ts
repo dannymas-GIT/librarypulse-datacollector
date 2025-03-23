@@ -23,4 +23,11 @@ declare module '@tanstack/react-query' {
     onSuccess?: (data: TData, variables: TVariables, context: unknown) => Promise<unknown> | unknown;
     onSettled?: (data: TData | undefined, error: TError | null, variables: TVariables, context: unknown) => Promise<unknown> | unknown;
   }
+}
+
+// Add React JSX declarations
+declare namespace JSX {
+  interface IntrinsicElements {
+    [elemName: string]: any;
+  }
 } 

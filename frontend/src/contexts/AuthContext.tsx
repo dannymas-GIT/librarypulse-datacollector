@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios, { AxiosRequestConfig } from 'axios';
+import { API_BASE_URL } from '../config';
 
 // Define user type
 export interface User {
@@ -14,6 +17,7 @@ export interface User {
   updated_at: string;
   last_login: string;
   library_id?: string | null;
+  is_admin: boolean;
 }
 
 // Define auth context type
@@ -21,12 +25,19 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (token: string, user: User) => void;
+  login: (token: string, userData: User) => void;
   logout: () => void;
+  register: (data: RegisterData) => Promise<void>;
+}
+
+interface RegisterData {
+  email: string;
+  username: string;
+  password: string;
 }
 
 // Create context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 // Auth provider props
 interface AuthProviderProps {
@@ -34,52 +45,84 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing token and user data on mount
-  useEffect(() => {
-    const checkAuth = async () => {
+  // Create axios instance
+  const api = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  // Add request interceptor to include auth token
+  api.interceptors.request.use(
+    (config: AxiosRequestConfig) => {
       const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-
-      if (token && userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        } catch (error) {
-          console.error('Failed to parse user data:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
-      
+      return config;
+    },
+    (error: unknown) => Promise.reject(error)
+  );
+
+  // Query for current user
+  const { data: user, error } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+
+      try {
+        const response = await api.get<User>('/api/v1/users/me');
+        return response.data;
+      } catch (error) {
+        localStorage.removeItem('token');
+        return null;
+      }
+    },
+    retry: false,
+  });
+
+  // Update loading state when query completes
+  useEffect(() => {
+    if (!error && user !== undefined) {
       setIsLoading(false);
-    };
+    }
+  }, [user, error]);
 
-    checkAuth();
-  }, []);
-
-  // Login function
-  const login = (token: string, userData: User) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
+  const login = async (token: string, userData: User) => {
+    try {
+      localStorage.setItem('token', token);
+      queryClient.setQueryData(['user'], userData);
+    } catch (error) {
+      throw new Error('Login failed');
+    }
   };
 
-  // Logout function
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+    queryClient.setQueryData(['user'], null);
+    queryClient.invalidateQueries({ queryKey: ['user'] });
+  };
+
+  const register = async (data: RegisterData) => {
+    try {
+      await api.post('/api/v1/auth/register', data);
+    } catch (error) {
+      throw new Error('Registration failed');
+    }
   };
 
   const value = {
-    user,
+    user: user || null,
     isAuthenticated: !!user,
     isLoading,
     login,
     logout,
+    register,
   };
 
   return (
@@ -93,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   
