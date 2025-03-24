@@ -1,7 +1,18 @@
 name: AWS Credentials Test Only
 
 on:
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:  # Only manual trigger
+  # Explicitly prevent other triggers
+  push:
+    branches:
+      - '**'
+    paths-ignore:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - '**'
 
 jobs:
   test-aws-only:
