@@ -1,21 +1,11 @@
-name: AWS Credentials Test Only
+name: Manual AWS Access Test
 
 on:
-  workflow_dispatch:  # Only manual trigger
-  # Explicitly prevent other triggers
-  push:
-    branches:
-      - '**'
-    paths-ignore:
-      - '**'
-  pull_request:
-    branches:
-      - '**'
-    paths-ignore:
-      - '**'
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
-  test-aws-only:
+  verify-aws-access:
+    name: Verify AWS Access
     runs-on: ubuntu-latest
     steps:
     - name: Configure AWS credentials
@@ -23,7 +13,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1  # Explicitly setting region
+        aws-region: us-east-1
     
     - name: Test AWS Connectivity
       run: |
@@ -42,6 +32,4 @@ jobs:
         }
         
         echo "Testing Lightsail instance listing..."
-        aws lightsail get-instances || true  # Continue even if no instances exist
-        
-        echo "AWS Credentials test complete." 
+        aws lightsail get-instances || true 
