@@ -1,0 +1,30 @@
+name: AWS Verification
+
+# This is a standalone workflow that only runs manually to verify AWS credentials
+on:
+  workflow_dispatch:
+
+jobs:
+  verify-aws:
+    runs-on: ubuntu-latest
+    # Prevent this job from being included in other workflows
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Verify AWS Access
+        run: |
+          echo "Verifying AWS credentials..."
+          aws sts get-caller-identity
+          
+          echo "Checking IAM policies..."
+          aws iam list-attached-user-policies --user-name github-actions-deployer
+          aws iam list-user-policies --user-name github-actions-deployer
+          
+          echo "Testing Lightsail access..."
+          aws lightsail get-regions 
