@@ -7,19 +7,20 @@ jobs:
   test-aws:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
+    
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: us-east-1  # Explicitly setting region
     
     - name: Test Lightsail Access
       run: |
-        # Install AWS CLI
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install
+        # Test AWS connectivity
+        echo "Testing AWS connectivity..."
+        aws sts get-caller-identity
         
         # Test Lightsail permissions
         echo "Testing Lightsail access..."
