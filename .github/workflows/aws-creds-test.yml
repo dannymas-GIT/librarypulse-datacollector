@@ -30,8 +30,16 @@ jobs:
         echo "Testing basic AWS connectivity..."
         aws sts get-caller-identity
         
+        echo "Checking current IAM policy..."
+        aws iam list-attached-user-policies --user-name github-actions-deployer
+        aws iam list-user-policies --user-name github-actions-deployer
+        
         echo "Testing Lightsail API access..."
-        aws lightsail get-regions
+        aws lightsail get-regions --debug || {
+          echo "Failed to get regions. Checking IAM permissions..."
+          aws iam get-user-policy --user-name github-actions-deployer --policy-name github-actions-policy || true
+          exit 1
+        }
         
         echo "Testing Lightsail instance listing..."
         aws lightsail get-instances || true  # Continue even if no instances exist
