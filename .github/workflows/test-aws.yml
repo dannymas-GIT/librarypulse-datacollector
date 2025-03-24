@@ -1,0 +1,29 @@
+name: Test AWS Credentials
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  test-aws:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Test Lightsail Access
+      run: |
+        # Install AWS CLI
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        
+        # Test Lightsail permissions
+        echo "Testing Lightsail access..."
+        aws lightsail get-instances
+        
+        echo "Testing instance access..."
+        aws lightsail get-instance-access-details --instance-name LibraryPulse 
