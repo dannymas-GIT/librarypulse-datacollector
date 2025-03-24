@@ -9,7 +9,7 @@ on:
       - 'mock-services/**'
       - 'landing/**'
       - 'docker-compose.yml'
-      - '.github/workflows/**'
+      - '.github/workflows/library-lens-ci-cd.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
@@ -18,7 +18,7 @@ on:
       - 'mock-services/**'
       - 'landing/**'
       - 'docker-compose.yml'
-      - '.github/workflows/**'
+      - '.github/workflows/library-lens-ci-cd.yml'
   workflow_dispatch:
 
 env:

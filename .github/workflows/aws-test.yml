@@ -1,0 +1,28 @@
+name: Test AWS Credentials
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  test-aws:
+    name: Test AWS Credentials
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Test AWS Connectivity
+      run: |
+        echo "Testing basic AWS connectivity..."
+        aws sts get-caller-identity
+        
+        echo "Testing Lightsail API access..."
+        aws lightsail get-regions --debug || {
+          echo "Failed to get regions. Checking IAM permissions..."
+          aws iam get-user-policy --user-name github-actions-deployer --policy-name github-actions-policy || true
+          exit 1
+        } 
