@@ -1,25 +1,27 @@
 name: Library-Lens CI/CD Pipeline
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'mock-services/**'
-      - 'landing/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/**'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'mock-services/**'
-      - 'landing/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/**'
+  # Disabled automatic triggers - using only manual dispatch
+  # push:
+  #   branches: [ main, develop ]
+  #   paths:
+  #     - 'backend/**'
+  #     - 'frontend/**'
+  #     - 'mock-services/**'
+  #     - 'landing/**'
+  #     - 'docker-compose.yml'
+  #     - '.github/workflows/**'
+  # pull_request:
+  #   branches: [ main, develop ]
+  #   paths:
+  #     - 'backend/**'
+  #     - 'frontend/**'
+  #     - 'mock-services/**'
+  #     - 'landing/**'
+  #     - 'docker-compose.yml'
+  #     - '.github/workflows/**'
   workflow_dispatch:
+    # Manual trigger only
 
 env:
   REGISTRY: ghcr.io
