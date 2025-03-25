@@ -1,6 +1,6 @@
 version: '3.8'
 
-# name: librarypulse
+# name: librarylens
 
 services:
   backend:
@@ -24,12 +24,12 @@ services:
       - ./data:/app/data
       - ./extracted_data:/app/extracted_data
     networks:
-      - librarypulse-network
+      - librarylens-network
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/librarylens
       - SECRET_KEY=${SECRET_KEY:-supersecretkey}
       - ENVIRONMENT=${ENVIRONMENT:-development}
-      - ALLOWED_ORIGINS=http://localhost:3000,http://frontend:3000
+      - ALLOWED_ORIGINS=http://44.200.215.2,http://library-lens.com,https://library-lens.com
 
   frontend:
     build:
@@ -37,19 +37,22 @@ services:
       dockerfile: Dockerfile
       args:
         - SKIP_TYPECHECKING=true
-        - VITE_API_URL=http://localhost:8000/api/v1
+        - VITE_API_URL=http://44.200.215.2:8000/api/v1
     restart: always
     ports:
-      - "3000:80"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /etc/ssl:/etc/ssl:ro
     environment:
-      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_API_URL=http://44.200.215.2:8000/api/v1
     depends_on:
       - backend
     networks:
-      - librarypulse-network
+      - librarylens-network
 
   db:
     image: postgres:15
@@ -57,7 +60,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=librarypulse
+      - POSTGRES_DB=librarylens
     ports:
       - "5433:5432"
     volumes:
@@ -68,7 +71,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - librarypulse-network
+      - librarylens-network
 
   redis:
     image: redis:7
@@ -81,13 +84,13 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - librarypulse-network
+      - librarylens-network
 
 volumes:
   postgres_data:
-    # name: librarypulse-postgres-data
+    # name: librarylens-postgres-data
 
 networks:
-  librarypulse-network:
-    # name: librarypulse-network
+  librarylens-network:
+    # name: librarylens-network
     driver: bridge 
