@@ -96,10 +96,6 @@ jobs:
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    env:
-      SKIP_TYPECHECKING: "true"
-      CI: "true"
-      NODE_OPTIONS: "--max-old-space-size=4096"
     
     steps:
       - name: Checkout repository
@@ -108,7 +104,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '18.17.1'  # Specific version that's known to work
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
           
@@ -117,10 +113,21 @@ jobs:
           cd frontend
           npm ci
           
-      - name: Run frontend tests
+      - name: Make build script executable
         run: |
           cd frontend
-          npm run test
+          chmod +x run-build.sh
+          
+      - name: Run CI build and tests
+        run: |
+          cd frontend
+          # Export the NODE_OPTIONS env var to increase memory
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          # Print Node.js and npm versions for debugging
+          node --version
+          npm --version
+          # Run the CI script with verbose output
+          npm run ci
 
   mock-services-tests:
     name: Mock Services Tests

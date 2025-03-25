@@ -868,7 +868,7 @@ jobs:
             echo "Production deployment verified successfully!"
       
       - name: Rollback on Failure
-        if: failure() && steps.deploy.outcome == 'success' && steps.verify.outcome == 'failure'
+        if: failure() && needs.deploy.result == 'success' && needs.verify.result == 'failure'
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -893,50 +893,4 @@ jobs:
             docker compose down
             docker compose up -d
             
-            echo "Rollback complete."
-
-  fix-pydantic-warnings:
-    name: Fix Pydantic Warnings
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: deploy
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          
-      - name: Create branch for Pydantic updates
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git checkout -b fix/pydantic-deprecation-warnings
-          
-      - name: Update User Schema
-        run: |
-          # Update the user schema with field_validator instead of validator
-          sed -i 's/@validator/@field_validator/g' backend/app/schemas/user.py
-          sed -i 's/from pydantic import validator/from pydantic import field_validator/g' backend/app/schemas/user.py
-          
-          # Update orm_mode to from_attributes
-          sed -i 's/orm_mode = True/from_attributes = True/g' backend/app/schemas/user.py
-          
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          title: "fix: Update Pydantic v1 to v2 syntax"
-          body: |
-            This PR updates the codebase to use Pydantic v2 syntax:
-            
-            - Replaced `@validator` with `@field_validator`
-            - Changed `orm_mode = True` to `from_attributes = True`
-            
-            These changes fix the deprecation warnings that appear during CI builds.
-          branch: fix/pydantic-deprecation-warnings
-          base: main
-          labels: "maintenance,technical-debt"
-          delete-branch: true 
+            echo "Rollback complete." 
