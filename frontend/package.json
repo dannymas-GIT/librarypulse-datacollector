@@ -12,7 +12,7 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "test:ci": "jest --passWithNoTests",
-    "ci": "./run-build.sh"
+    "ci": "NODE_ENV=ci ./run-build.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",

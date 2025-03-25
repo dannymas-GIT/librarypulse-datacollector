@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Debug information
+echo "Node version: $(node --version)"
+echo "NPM version: $(npm --version)"
+echo "Current directory: $(pwd)"
+echo "Environment: $NODE_ENV"
+
 echo "🔨 Preparing frontend build environment..."
 
 # Create directory for types if it doesn't exist
@@ -22,6 +28,12 @@ cat > .env.ci << 'EOF'
 VITE_API_URL=http://localhost:8000/api/v1
 SKIP_TYPECHECKING=true
 EOF
+
+# Set memory options if not already set
+if [ -z "$NODE_OPTIONS" ]; then
+  export NODE_OPTIONS="--max-old-space-size=4096"
+  echo "Set NODE_OPTIONS to $NODE_OPTIONS"
+fi
 
 echo "🚀 Starting build with TypeScript checking disabled..."
 SKIP_TYPECHECKING=true npm run build:ci

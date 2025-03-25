@@ -10,6 +10,8 @@ class PLSDataset(Base, IDMixin, TimestampMixin):
     
     __tablename__ = "pls_datasets"
     
+    __table_args__ = {'extend_existing': True}
+    
     year = Column(Integer, nullable=False, index=True, unique=True)
     status = Column(String(20), nullable=False, default="pending")  # pending, processing, complete, error
     record_count = Column(Integer, nullable=True)
@@ -28,6 +30,7 @@ class Library(Base, IDMixin, TimestampMixin):
     
     __table_args__ = (
         UniqueConstraint('dataset_id', 'library_id', name='uix_library_dataset_library_id'),
+        {'extend_existing': True}
     )
     
     # Library info
@@ -119,6 +122,7 @@ class LibraryOutlet(Base, IDMixin, TimestampMixin):
             ['libraries.dataset_id', 'libraries.library_id'],
             ondelete="CASCADE"
         ),
+        {'extend_existing': True}
     )
     
     # Outlet info
