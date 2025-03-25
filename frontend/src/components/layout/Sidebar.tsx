@@ -24,7 +24,7 @@ const Sidebar = ({ navItems }: SidebarProps) => {
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           {!collapsed && (
-            <h1 className="text-xl font-bold text-primary-600">Library Pulse</h1>
+            <h1 className="text-xl font-bold text-primary-600">Library Lens</h1>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -62,7 +62,7 @@ const Sidebar = ({ navItems }: SidebarProps) => {
           <div className="flex items-center">
             {!collapsed && (
               <div className="ml-3">
-                <p className="text-xs text-gray-500">IMLS Library Pulse</p>
+                <p className="text-xs text-gray-500">IMLS Library Lens</p>
                 <p className="text-xs text-gray-400">v0.1.0</p>
               </div>
             )}

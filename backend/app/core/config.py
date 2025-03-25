@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     ENVIRONMENT: str = "production"
     PRODUCTION: bool = False
-    PROJECT_NAME: str = "IMLS Library Pulse"
-    PROJECT_DESCRIPTION: str = "API for the IMLS Library Pulse project"
-    VERSION: str = "0.1.0"
+    PROJECT_NAME: str = "Library Lens"
+    PROJECT_DESCRIPTION: str = "API for collecting and analyzing public library data"
+    VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
 
     # Logging
@@ -25,46 +25,35 @@ class Settings(BaseSettings):
     LOG_FILE: str = "logs/api.log"
 
     # CORS
-    CORS_ORIGINS: List[str] = []
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        if isinstance(v, str):
-            if not v or not v.strip():
-                return []
-            try:
-                # Try to parse as JSON
-                import json
-                return json.loads(v)
-            except (json.JSONDecodeError, TypeError):
-                # If not JSON, treat as comma-separated
-                return [origin.strip() for origin in v.split(",") if origin and origin.strip()]
-        elif isinstance(v, list):
-            return v
-        return []
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Get CORS origins as a list."""
+        return [i.strip() for i in self.CORS_ORIGINS.split(",")]
 
     # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "development_secret_key")
+    SECRET_KEY: str = "your-secret-key-here"  # Change in production
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Frontend URL for email links
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
     
     # Email settings
-    EMAILS_ENABLED: bool = os.getenv("EMAILS_ENABLED", "False").lower() == "true"
-    EMAILS_FROM_EMAIL: str = os.getenv("EMAILS_FROM_EMAIL", "noreply@librarypulse.com")
-    EMAILS_FROM_NAME: str = os.getenv("EMAILS_FROM_NAME", "Library Pulse")
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
-    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
-    SMTP_USER: str = os.getenv("SMTP_USER", "")
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
-    SMTP_TLS: bool = os.getenv("SMTP_TLS", "True").lower() == "true"
+    EMAILS_ENABLED: bool = False
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
+    SMTP_TLS: bool = True
+    SMTP_PORT: Optional[int] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
 
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/librarypulse")
-    TEST_DATABASE_URL: Optional[str] = os.getenv("TEST_DATABASE_URL")
+    DATABASE_URL: str = "sqlite:///./app.db"
+    TEST_DATABASE_URL: str = "sqlite:///./test.db"
 
     # Data Settings
     IMLS_DATA_BASE_URL: str = "https://www.imls.gov/research-evaluation/data-collection/public-libraries-survey"
@@ -82,13 +71,17 @@ class Settings(BaseSettings):
         return path
 
     # Redis Settings
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "True").lower() == "true"
-    RATE_LIMIT_DEFAULT: str = os.getenv("RATE_LIMIT_DEFAULT", "100/minute")
-    RATE_LIMIT_LOGIN: str = os.getenv("RATE_LIMIT_LOGIN", "5/minute")
-    RATE_LIMIT_REGISTER: str = os.getenv("RATE_LIMIT_REGISTER", "3/hour")
-    RATE_LIMIT_PASSWORD_RESET: str = os.getenv("RATE_LIMIT_PASSWORD_RESET", "3/hour")
-    RATE_LIMIT_EMAIL_VERIFY: str = os.getenv("RATE_LIMIT_EMAIL_VERIFY", "5/minute")
+    REDIS_URL: str = "redis://localhost:6379/0"
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_DEFAULT: str = "100/minute"
+    RATE_LIMIT_LOGIN: str = "5/minute"
+    RATE_LIMIT_REGISTER: str = "3/minute"
+    RATE_LIMIT_PASSWORD_RESET: str = "3/minute"
+    RATE_LIMIT_EMAIL_VERIFY: str = "3/minute"
+
+    # Admin
+    ADMIN_EMAIL: str = "admin@example.com"
+    ADMIN_PASSWORD: str = "admin"  # Change in production
 
     @field_validator("ENVIRONMENT", mode="after")
     def set_production(cls, v: str, info) -> str:
