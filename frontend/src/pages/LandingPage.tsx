@@ -9,7 +9,7 @@ export const LandingPage: React.FC = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Welcome to <span className="text-blue-600">Library Lens</span>
+            Welcome to <span className="text-blue-600">LibraryPulse</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Your comprehensive library data collection and analysis platform. 
@@ -114,7 +114,7 @@ export const LandingPage: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6">Ready to transform your library data?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Join library directors nationwide who are using Library Lens to make data-driven decisions.
+            Join library directors nationwide who are using LibraryPulse to make data-driven decisions.
           </p>
           <Link
             to="/register"
