@@ -575,8 +575,11 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            # Create target directory if it doesn't exist
+            mkdir -p /opt/projects/librarylens
+            
             # Update the deployment
-            cd /opt/librarypulse
+            cd /opt/projects/librarylens
             
             # Backup current deployment state
             if [ -f docker-compose.yml ]; then
@@ -597,8 +600,8 @@ jobs:
             # Update the environment file with Lightsail configuration
             cat > .env << 'EOF'
             # Database Configuration
-            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
-            TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse_test
+            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarylens
+            TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/librarylens_test
 
             # Redis Configuration
             REDIS_URL=redis://redis:6379/0
@@ -612,7 +615,7 @@ jobs:
             DEBUG=false
 
             # CORS - Update with your actual domain
-            CORS_ORIGINS=https://${{ secrets.PRODUCTION_DOMAIN }}
+            CORS_ORIGINS=https://${{ secrets.PRODUCTION_DOMAIN }},http://44.200.215.2,http://library-lens.com,https://library-lens.com
 
             # Email Configuration
             EMAILS_ENABLED=true
@@ -622,7 +625,7 @@ jobs:
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
             EMAILS_FROM_EMAIL=noreply@${{ secrets.PRODUCTION_DOMAIN }}
-            EMAILS_FROM_NAME=Library Pulse
+            EMAILS_FROM_NAME=Library Lens
             EOF
             
             # Ensure directory structure exists
@@ -716,12 +719,14 @@ jobs:
             cat > docker-compose.yml << 'EOF'
             version: '3.9'
 
-            name: librarypulse-production
+            name: librarylens-production
 
             services:
               backend:
                 image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
                 restart: always
+                ports:
+                  - "8000:8000"
                 depends_on:
                   - db
                   - redis
@@ -733,49 +738,10 @@ jobs:
                   timeout: 10s
                   retries: 3
                 networks:
-                  - librarypulse-network
+                  - librarylens-network
 
               frontend:
                 image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-                restart: always
-                volumes:
-                  - frontend_data:/usr/share/nginx/html
-                networks:
-                  - librarypulse-network
-
-              db:
-                image: postgres:16-alpine
-                restart: always
-                environment:
-                  - POSTGRES_USER=postgres
-                  - POSTGRES_PASSWORD=postgres
-                  - POSTGRES_DB=librarypulse
-                volumes:
-                  - postgres_data:/var/lib/postgresql/data
-                healthcheck:
-                  test: ["CMD-SHELL", "pg_isready -U postgres"]
-                  interval: 10s
-                  timeout: 5s
-                  retries: 5
-                networks:
-                  - librarypulse-network
-
-              redis:
-                image: redis:7-alpine
-                restart: always
-                command: redis-server --appendonly yes
-                volumes:
-                  - redis_data:/data
-                healthcheck:
-                  test: ["CMD", "redis-cli", "ping"]
-                  interval: 10s
-                  timeout: 5s
-                  retries: 5
-                networks:
-                  - librarypulse-network
-
-              nginx:
-                image: nginx:mainline-alpine
                 restart: always
                 ports:
                   - "80:80"
@@ -784,14 +750,46 @@ jobs:
                   - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
                   - ./certbot/conf:/etc/letsencrypt
                   - ./certbot/www:/var/www/certbot
-                  - ./logs/nginx:/var/log/nginx
                   - frontend_data:/usr/share/nginx/html
                 depends_on:
                   - backend
-                  - frontend
                 networks:
-                  - librarypulse-network
-                command: "/bin/sh -c 'while :; do sleep 6h & wait \$\${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+                  - librarylens-network
+
+              db:
+                image: postgres:16-alpine
+                restart: always
+                environment:
+                  - POSTGRES_USER=postgres
+                  - POSTGRES_PASSWORD=postgres
+                  - POSTGRES_DB=librarylens
+                ports:
+                  - "5433:5432"
+                volumes:
+                  - postgres_data:/var/lib/postgresql/data
+                healthcheck:
+                  test: ["CMD-SHELL", "pg_isready -U postgres"]
+                  interval: 10s
+                  timeout: 5s
+                  retries: 5
+                networks:
+                  - librarylens-network
+
+              redis:
+                image: redis:7-alpine
+                restart: always
+                command: redis-server --appendonly yes
+                ports:
+                  - "6380:6379"
+                volumes:
+                  - redis_data:/data
+                healthcheck:
+                  test: ["CMD", "redis-cli", "ping"]
+                  interval: 10s
+                  timeout: 5s
+                  retries: 5
+                networks:
+                  - librarylens-network
 
               certbot:
                 image: certbot/certbot:latest
@@ -801,19 +799,19 @@ jobs:
                   - ./certbot/www:/var/www/certbot
                 entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait \$\${!}; done;'"
                 depends_on:
-                  - nginx
+                  - frontend
 
             volumes:
               postgres_data:
-                name: librarypulse-postgres-data
+                name: librarylens-postgres-data
               redis_data:
-                name: librarypulse-redis-data
+                name: librarylens-redis-data
               frontend_data:
-                name: librarypulse-frontend-data
+                name: librarylens-frontend-data
 
             networks:
-              librarypulse-network:
-                name: librarypulse-network
+              librarylens-network:
+                name: librarylens-network
                 driver: bridge
             EOF
             
@@ -859,7 +857,7 @@ jobs:
             fi
             
             # Check if frontend is accessible
-            FRONTEND_CHECK=$(curl -s -I http://localhost:3000 | grep -c "200" || echo "0")
+            FRONTEND_CHECK=$(curl -s -I http://localhost:80 | grep -c "200" || echo "0")
             if [ "$FRONTEND_CHECK" == "0" ]; then
               echo "Frontend check failed!"
               exit 1
@@ -876,7 +874,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             # Rollback deployment
-            cd /opt/librarypulse
+            cd /opt/projects/librarylens
             
             echo "Deployment verification failed! Rolling back..."
             
