@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     PRODUCTION: bool = False
     PROJECT_NAME: str = "Library Lens"
     PROJECT_DESCRIPTION: str = "API for collecting and analyzing public library data through Library Lens"
-    VERSION: str = "1.0.0"
+    VERSION: str = "1.1.0"
     API_V1_STR: str = "/api/v1"
 
     # Logging
