@@ -1,4 +1,4 @@
-name: LibraryPulse CI/CD Pipeline
+name: Library Lens CI/CD Pipeline
 
 on:
   push:
@@ -21,7 +21,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository_owner }}/librarypulse-datacollector
   AWS_REGION: ${{ secrets.AWS_REGION }}  # Add AWS region to environment
 
 permissions:
@@ -40,7 +40,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: librarypulse_test
+          POSTGRES_DB: librarylens_test
         ports:
           - 5432:5432
         options: >-
@@ -117,8 +117,8 @@ jobs:
         
     - name: Setup test environment
       env:
-        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
-        TEST_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarylens_test"
+        TEST_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarylens_test"
         REDIS_URL: "redis://localhost:6379/0"
         SECRET_KEY: test_secret_key
         ENVIRONMENT: test
@@ -130,8 +130,8 @@ jobs:
         import os
         
         # Set environment variables before any database imports
-        os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
-        os.environ["TEST_DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
+        os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarylens_test"
+        os.environ["TEST_DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarylens_test"
         
         def test_simple():
             """Simple test that always passes."""
@@ -320,7 +320,7 @@ jobs:
           cache-to: type=gha,mode=max
           load: true
           build-args: |
-            DATABASE_URL=postgresql://postgres:postgres@postgres-test:5432/librarypulse_test
+            DATABASE_URL=postgresql://postgres:postgres@postgres-test:5432/librarylens_test
 
       - name: Build frontend image
         uses: docker/build-push-action@v5
@@ -733,7 +733,7 @@ jobs:
                 env_file:
                   - .env
                 healthcheck:
-                  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+                  test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
                   interval: 30s
                   timeout: 10s
                   retries: 3
@@ -797,7 +797,7 @@ jobs:
                 volumes:
                   - ./certbot/conf:/etc/letsencrypt
                   - ./certbot/www:/var/www/certbot
-                entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait ${!}; done;'"
+                entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
                 depends_on:
                   - frontend
 
@@ -850,7 +850,7 @@ jobs:
             sleep 45
             
             # Check if backend is healthy
-            HEALTH_CHECK=$(curl -s http://localhost:8000/health || echo "Failed")
+            HEALTH_CHECK=$(curl -s http://localhost:8000/api/v1/health || echo "Failed")
             if [[ "$HEALTH_CHECK" != *"healthy"* ]]; then
               echo "Backend health check failed!"
               exit 1
