@@ -11,16 +11,16 @@ const PasswordResetPage: React.FC = () => {
             <img
               className="h-12 w-auto"
               src="/logo.svg"
-              alt="Library Pulse Logo"
+              alt="Library Lens Logo"
               onError={(e) => {
-                e.currentTarget.src = 'https://via.placeholder.com/120x48?text=Library+Pulse';
+                e.currentTarget.src = 'https://via.placeholder.com/120x48?text=Library+Lens';
               }}
             />
           </Link>
         </div>
-        <h1 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Library Pulse
-        </h1>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Library Lens
+        </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Enter your email to reset your password
         </p>

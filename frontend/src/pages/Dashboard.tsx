@@ -336,9 +336,9 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">About Library Pulse</h2>
+          <h2 className="text-lg font-semibold mb-4">About Library Lens</h2>
           <p className="text-gray-600 mb-4">
-            Library Pulse provides analytics and insights based on the Public Libraries Survey (PLS) 
+            Library Lens provides analytics and insights based on the Public Libraries Survey (PLS) 
             data collected annually by the Institute of Museum and Library Services (IMLS).
           </p>
           <p className="text-gray-600">

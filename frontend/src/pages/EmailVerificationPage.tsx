@@ -42,9 +42,9 @@ const EmailVerificationPage: React.FC = () => {
           <img
             className="h-12 w-auto"
             src="/logo.svg"
-            alt="Library Pulse Logo"
+            alt="Library Lens Logo"
             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-              e.currentTarget.src = 'https://via.placeholder.com/120x48?text=Library+Pulse';
+              e.currentTarget.src = 'https://via.placeholder.com/120x48?text=Library+Lens';
             }}
           />
         </div>
