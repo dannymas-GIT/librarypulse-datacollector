@@ -21,7 +21,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/librarypulse-datacollector
+  IMAGE_NAME: ${{ github.repository_owner }}/librarylens-datacollector
   AWS_REGION: ${{ secrets.AWS_REGION }}  # Add AWS region to environment
 
 permissions:
@@ -140,8 +140,8 @@ jobs:
         
     - name: Run basic tests
       env:
-        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
-        TEST_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarylens_test"
+        TEST_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarylens_test"
         REDIS_URL: "redis://localhost:6379/0"
         SECRET_KEY: test_secret_key
         ENVIRONMENT: test
@@ -190,8 +190,8 @@ jobs:
         
     - name: Run health check test
       env:
-        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
-        TEST_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
+        DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarylens_test"
+        TEST_DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/librarylens_test"
         REDIS_URL: "redis://localhost:6379/0"
         SECRET_KEY: test_secret_key
         ENVIRONMENT: test
@@ -203,8 +203,8 @@ jobs:
         import sys
         
         # Force these to be strings before any imports
-        os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
-        os.environ["TEST_DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarypulse_test"
+        os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarylens_test"
+        os.environ["TEST_DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/librarylens_test"
         os.environ["REDIS_URL"] = "redis://localhost:6379/0"
         
         # Create a simple direct test that doesn't import the whole app
@@ -315,7 +315,7 @@ jobs:
         with:
           context: ./backend
           push: false
-          tags: librarypulse-backend:test
+          tags: librarylens-backend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
@@ -327,7 +327,7 @@ jobs:
         with:
           context: ./frontend
           push: false
-          tags: librarypulse-frontend:test
+          tags: librarylens-frontend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
@@ -337,16 +337,16 @@ jobs:
             ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
       - name: Create docker-compose test network
-        run: docker network create librarypulse-test-network || true
+        run: docker network create librarylens-test-network || true
             
       - name: Start Postgres container for testing
         run: |
           docker run -d \
             --name postgres-test \
-            --network librarypulse-test-network \
+            --network librarylens-test-network \
             -e POSTGRES_USER=postgres \
             -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_DB=librarypulse_test \
+            -e POSTGRES_DB=librarylens_test \
             -p 5433:5432 \
             postgres:15
 
@@ -354,7 +354,7 @@ jobs:
         run: |
           docker run -d \
             --name redis-test \
-            --network librarypulse-test-network \
+            --network librarylens-test-network \
             -p 6381:6379 \
             redis:7
             
@@ -452,7 +452,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
+            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarylens
             ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
       - name: Extract metadata for frontend
@@ -504,7 +504,7 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
             # Update the deployment on staging
-            cd /opt/librarypulse-staging
+            cd /opt/librarylens-staging
             
             # Login to GitHub Container Registry
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -514,7 +514,7 @@ jobs:
             
             # Update the environment file
             cat > .env << 'EOF'
-            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarypulse
+            DATABASE_URL=postgresql://postgres:postgres@db:5432/librarylens
             SECRET_KEY=${{ secrets.STAGING_SECRET_KEY }}
             ENVIRONMENT=staging
             EOF

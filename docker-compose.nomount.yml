@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/librarylens
+      - SECRET_KEY=supersecretkey
+      - ENVIRONMENT=development
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80
+    networks:
+      - librarylens-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - SKIP_TYPECHECKING=true
+        - VITE_API_URL=http://backend:8000/api/v1
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=http://backend:8000/api/v1
+    depends_on:
+      - backend
+    networks:
+      - librarylens-network
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=librarylens
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - librarylens-network
+
+  redis:
+    image: redis:7
+    restart: always
+    ports:
+      - "6380:6379"
+    networks:
+      - librarylens-network
+
+volumes:
+  postgres_data:
+
+networks:
+  librarylens-network:
+    driver: bridge 

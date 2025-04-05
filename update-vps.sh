@@ -34,11 +34,11 @@ sleep 15
 # Ensure the admin user is created or updated
 echo "👤 Ensuring admin user is set up correctly..."
 # Copy the SQL script into the PostgreSQL container
-docker cp backend/create_user_tables.sql datacollector_db_1:/tmp/create_user_tables.sql
+docker cp backend/create_user_tables.sql librarylens-db-1:/tmp/create_user_tables.sql
 # Run the script to create/update the users table
-docker-compose exec -T db psql -U postgres -d librarypulse -f /tmp/create_user_tables.sql || echo "⚠️ Could not update user tables"
+docker-compose exec -T db psql -U postgres -d librarylens -f /tmp/create_user_tables.sql || echo "⚠️ Could not update user tables"
 # Update the admin password directly as a fallback
-docker-compose exec -T db psql -U postgres -d librarypulse -c "UPDATE users SET hashed_password = '\$2b\$12\$qFv2xVqe0jj5w9uSlyHmvOBB7FWpOPm/OGNrnM5VRSpHidZhmIdUS' WHERE username = 'admin';" || echo "⚠️ Could not update admin password"
+docker-compose exec -T db psql -U postgres -d librarylens -c "UPDATE users SET hashed_password = '\$2b\$12\$qFv2xVqe0jj5w9uSlyHmvOBB7FWpOPm/OGNrnM5VRSpHidZhmIdUS' WHERE username = 'admin';" || echo "⚠️ Could not update admin password"
 
 # Restart the backend to ensure it picks up any database changes
 echo "🔄 Restarting backend service..."
@@ -48,6 +48,6 @@ sleep 5
 # Check if services are running
 echo "🔍 Checking service status..."
 curl -s http://localhost:8000/health || echo "❌ Backend health check failed"
-curl -s -I http://localhost:3000 | grep -c "200" || echo "❌ Frontend check failed"
+curl -s -I http://localhost:80 | grep -c "200" || echo "❌ Frontend check failed"
 
 echo "✅ Update completed!" 
