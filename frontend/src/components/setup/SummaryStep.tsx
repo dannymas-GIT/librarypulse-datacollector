@@ -9,6 +9,7 @@ interface SummaryStepProps {
   onSubmit: () => void;
   onBack: () => void;
   isSubmitting: boolean;
+  updateFormData: (data: Partial<LibraryConfigCreate>) => void;
 }
 
 const SummaryStep: React.FC<SummaryStepProps> = ({
@@ -16,7 +17,8 @@ const SummaryStep: React.FC<SummaryStepProps> = ({
   metricsData,
   onSubmit,
   onBack,
-  isSubmitting
+  isSubmitting,
+  updateFormData
 }) => {
   const renderCategorySelection = () => {
     return (
@@ -91,22 +93,43 @@ const SummaryStep: React.FC<SummaryStepProps> = ({
   
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">Review Your Configuration</h2>
+      <h2 className="text-2xl font-semibold mb-4">Review Your Setup</h2>
       <p className="text-gray-600 mb-6">
-        Please review your library and statistics selections below. Once you finish setup, 
-        we'll download the necessary data for your library and prepare your dashboard.
+        Please review your library and statistics selections below. Once you finish setup,
+        we'll begin collecting and processing data for your library.
       </p>
       
-      {/* Selected Library */}
+      {/* Library Information */}
       <div className="mb-6">
-        <h3 className="text-lg font-medium mb-2">Selected Library</h3>
+        <h3 className="text-lg font-medium mb-2">Library Information</h3>
         <div className="border rounded-lg p-4 bg-blue-50">
-          <div className="font-medium">{formData.library_name}</div>
-          <div className="text-sm text-gray-500">ID: {formData.library_id}</div>
+          <div className="font-medium text-lg">{formData.library_name}</div>
+          <div className="text-sm text-gray-600">ID: {formData.library_id}</div>
         </div>
       </div>
       
-      {/* Selected Categories */}
+      {/* Comparison Libraries */}
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-2">Comparison Libraries</h3>
+        {formData.comparison_libraries && formData.comparison_libraries.length > 0 ? (
+          <div className="border rounded-lg divide-y">
+            {formData.comparison_libraries.map(library => (
+              <div key={library.id} className="p-3">
+                <div className="font-medium">{library.name}</div>
+                <div className="text-sm text-gray-500">
+                  {library.city}, {library.state} - ID: {library.id}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="border rounded-lg p-4 text-gray-500">
+            No comparison libraries selected.
+          </div>
+        )}
+      </div>
+      
+      {/* Statistics Categories */}
       {renderCategorySelection()}
       
       {/* Selected Metrics */}
@@ -129,7 +152,10 @@ const SummaryStep: React.FC<SummaryStepProps> = ({
             id="auto-update"
             className="w-5 h-5 text-blue-600 rounded"
             checked={formData.auto_update_enabled ?? true}
-            onChange={(e) => onSubmit({ ...formData, auto_update_enabled: e.target.checked })}
+            onChange={(e) => {
+              const updatedData = { ...formData, auto_update_enabled: e.target.checked };
+              updateFormData(updatedData);
+            }}
           />
           <label htmlFor="auto-update" className="ml-2">
             Automatically check for and download the latest data when available

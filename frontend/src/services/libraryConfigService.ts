@@ -38,6 +38,7 @@ export interface LibraryConfig {
   program_metrics?: Record<string, boolean>;
   staff_metrics?: Record<string, boolean>;
   financial_metrics?: Record<string, boolean>;
+  comparison_libraries?: LibrarySearchResult[];
   setup_complete: boolean;
   auto_update_enabled: boolean;
   created_at: string;
@@ -57,6 +58,7 @@ export interface LibraryConfigCreate {
   program_metrics?: Record<string, boolean>;
   staff_metrics?: Record<string, boolean>;
   financial_metrics?: Record<string, boolean>;
+  comparison_libraries?: LibrarySearchResult[];
   setup_complete: boolean;
   auto_update_enabled: boolean;
 }
