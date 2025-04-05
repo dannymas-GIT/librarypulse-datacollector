@@ -19,10 +19,8 @@ CURRENT_DIR=$(pwd)
 
 # Rebuild the frontend
 echo "🔨 Rebuilding frontend..."
-cd frontend
-npm ci
-npm run build
-cd "$CURRENT_DIR"
+# Use a temporary Docker container to build the frontend
+docker run --rm -v "$(pwd)/frontend:/app" -w /app node:18-alpine sh -c "npm ci && npm run build"
 
 # Update the docker-compose.yml file with the correct API URL
 sed -i 's|VITE_API_URL=http://backend:8000/api/v1|VITE_API_URL=http://44.200.215.2:8000/api/v1|g' docker-compose.yml
