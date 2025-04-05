@@ -8,9 +8,14 @@ echo "🚀 Updating Library Lens on VPS..."
 # Save the current directory
 CURRENT_DIR=$(pwd)
 
-# Pull the latest changes
-echo "📥 Pulling latest changes from git..."
-git pull
+# # Pull the latest changes (Skip this if not a git repo, or run manually if needed)
+# echo "📥 Pulling latest changes from git..."
+# # Check if .git exists before pulling
+# if [ -d ".git" ]; then
+#   git pull
+# else
+#   echo "ℹ️ Not a git repository, skipping pull."
+# fi
 
 # Rebuild the frontend
 echo "🔨 Rebuilding frontend..."
@@ -48,6 +53,6 @@ sleep 5
 # Check if services are running
 echo "🔍 Checking service status..."
 curl -s http://localhost:8000/health || echo "❌ Backend health check failed"
-curl -s -I http://localhost:80 | grep -c "200" || echo "❌ Frontend check failed"
+curl -s -I http://localhost:3000 | grep -c "200" || echo "❌ Frontend check failed"
 
 echo "✅ Update completed!" 
