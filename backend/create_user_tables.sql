@@ -75,7 +75,7 @@ INSERT INTO users (
 ) 
 VALUES (
     'admin@librarypulse.org', 'admin', 
-    '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 
+    '$2b$12$qFv2xVqe0jj5w9uSlyHmvOBB7FWpOPm/OGNrnM5VRSpHidZhmIdUS', 
     true, true, 'Admin', 'User', 'admin'
 )
 ON CONFLICT (email) DO NOTHING; 
