@@ -4,6 +4,7 @@ version: '3.8'
 
 services:
   backend:
+    image: ghcr.io/dannymas-git/librarylens-datacollector-backend:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -39,6 +40,7 @@ services:
       - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://44.200.215.2,http://library-lens.com,https://library-lens.com
 
   frontend:
+    image: ghcr.io/dannymas-git/librarylens-datacollector-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
