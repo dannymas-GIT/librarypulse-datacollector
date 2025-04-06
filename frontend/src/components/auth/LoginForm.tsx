@@ -23,6 +23,7 @@ const LoginForm: React.FC = () => {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginSuccess, setLoginSuccess] = useState<string | null>(null);
 
   const {
     register,
@@ -47,11 +48,17 @@ const LoginForm: React.FC = () => {
     },
     onSuccess: (data) => {
       console.log('Login successful:', data);
-      // Store token and user data using the auth context
-      login(data.access_token, data.user);
+      // The backend only returns a token without user data
+      // Just pass the token to the auth context
+      login(data.access_token);
       
-      // Redirect to dashboard or setup wizard
-      navigate('/dashboard');
+      // Display success message instead of redirecting
+      setLoginSuccess('Login successful! Token: ' + data.access_token.substring(0, 10) + '...');
+      
+      // Redirect after a delay to allow seeing the success message
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
     },
     onError: (error: any) => {
       console.error('Login error:', error);
@@ -83,6 +90,13 @@ const LoginForm: React.FC = () => {
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-start">
             <AlertCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
             <span className="text-red-700 text-sm">{loginError}</span>
+          </div>
+        )}
+        
+        {loginSuccess && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-start">
+            <div className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0">✅</div>
+            <span className="text-green-700 text-sm">{loginSuccess}</span>
           </div>
         )}
         
@@ -155,10 +169,10 @@ const LoginForm: React.FC = () => {
           
           <button
             type="submit"
-            disabled={loginMutation.isPending}
+            disabled={loginMutation.isLoading}
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loginMutation.isPending ? (
+            {loginMutation.isLoading ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="animate-spin h-5 w-5 mr-2" />
                 Logging in...

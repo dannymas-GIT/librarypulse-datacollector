@@ -3,7 +3,7 @@
  */
 
 // API configuration
-export const API_BASE_URL = 'http://44.204.127.32:8000/api/v1';
+export const API_BASE_URL = '/api/v1';
 
 // Application settings
 export const APP_NAME = 'IMLS Library Lens';
